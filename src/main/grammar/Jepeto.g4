@@ -12,8 +12,11 @@ list
 	: LBRACK (() | ((expression COMMA)*) expression) RBRACK
 	;
 
+function_arguments
+	: LPRAN (() | ((expression COMMA)*) expression) RPRAN
+	;
 sequential_function
-	: FUNCTION IDENTIFIER LPRAN (() | ((expression COMMA)*) expression) RPRAN COLON function_body
+	: FUNCTION IDENTIFIER function_arguments COLON function_body
 	;
 
 function_body
@@ -36,12 +39,16 @@ returning_statement
 	: RETURN expression SEMICOLON | returning_condition
 	;
 
-expression
-	: IDENTIFIER
+returning_condition
+	: IF expression COLON returning_statement (ELSE COLON returning_statement)?
 	;
 
-IDENTIFIER
-	: [A-Za-z_] [A-Za-z0-9_]*
+function_call
+	: IDENTIFIER function_arguments
+	;
+
+expression
+	: IDENTIFIER
 	;
 
 INT
@@ -102,4 +109,16 @@ COLON
 
 SEMICOLON
 	: ';'
+	;
+
+IF
+	: 'if'
+	;
+
+ELSE
+	: 'else'
+	;
+
+IDENTIFIER
+	: [A-Za-z_] [A-Za-z0-9_]*
 	;
