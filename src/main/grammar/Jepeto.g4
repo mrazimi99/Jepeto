@@ -30,27 +30,35 @@ multi_body
 	;
 
 statement
-	: function_call SEMICOLON | returning_statement
+	: function_call SEMICOLON
 	;
 
 returning_statement
-	: RETURN (expression |  VOID) SEMICOLON | returning_condition
+	: (RETURN (expression | VOID) SEMICOLON) | returning_condition
 	;
 
 returning_condition
-	: IF expression COLON returning_statement (ELSE COLON returning_statement)?
+	: (IF expression COLON returning_statement) (ELSE COLON returning_statement)?
 	;
 
 function_call
-	: (PRINT | IDENTIFIER | func_ptr) sequential_function_arguments | key_value_function_arguments
+	: aaa bbb
+	;
+
+aaa
+	: PRINT | IDENTIFIER | func_ptr
+	;
+
+bbb
+	: sequential_function_arguments | key_value_function_arguments
 	;
 
 sequential_function_arguments
-	: LPRAN (() | ((expression COMMA)*) expression) RPRAN
+	: LPRAN (() | (((expression COMMA)*) expression)) RPRAN
 	;
 
 key_value_function_arguments
-	: LPRAN (() | ((assign_value_to_key COMMA)*) assign_value_to_key) RPRAN
+	: LPRAN (() | (((assign_value_to_key COMMA)*) assign_value_to_key)) RPRAN
 	;
 
 assign_value_to_key
@@ -58,7 +66,11 @@ assign_value_to_key
 	;
 
 expression
-	: IDENTIFIER | value | function_call
+	: value | function_call | IDENTIFIER
+	;
+
+mathematical
+	:
 	;
 
 value
@@ -98,7 +110,7 @@ BOOL
 	;
 
 STRING
-	: '"' ~('"') '"'
+	: '"' (~('"'))* '"'
 	;
 
 PRINT
@@ -142,11 +154,11 @@ RETURN
 	;
 
 LPRAN
-	: '{'
+	: '('
 	;
 
 RPRAN
-	: '}'
+	: ')'
 	;
 
 COLON

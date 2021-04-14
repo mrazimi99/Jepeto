@@ -1,1 +1,6 @@
-ab
+func f1 (a1, a2) : {
+	f2(a6 = a5, a7 = 0);
+	print(a1);
+	print(a4(5));
+	return f3("PLC");
+}
