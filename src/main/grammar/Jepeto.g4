@@ -1,26 +1,24 @@
 grammar Jepeto;
 
 jepeto
-	: {System.out.println("");} IDENTIFIER* EOF
+	: {System.out.println("");}
+	function_definition* main function_definition* EOF
 	;
 
-value:
-	IDENTIFIER | INT | BOOL | STRING
+main
+	: MAIN COLON function_call SEMICOLON
 	;
 
-list
-	: LBRACK (() | ((expression COMMA)*) expression) RBRACK
+function_definition
+	: FUNCTION IDENTIFIER function_definition_arguments COLON function_body
 	;
 
-function_arguments
-	: LPRAN (() | ((expression COMMA)*) expression) RPRAN
-	;
-sequential_function
-	: FUNCTION IDENTIFIER function_arguments COLON function_body
+function_definition_arguments
+	: LPRAN (() | ((IDENTIFIER COMMA)*) IDENTIFIER) RPRAN
 	;
 
 function_body
-	: multi_body | single_body
+	: single_body | multi_body
 	;
 
 single_body
@@ -28,7 +26,7 @@ single_body
 	;
 
 multi_body
-	: LBRACE statement* RBRACE
+	: LBRACE statement* returning_statement RBRACE
 	;
 
 statement
@@ -36,7 +34,7 @@ statement
 	;
 
 returning_statement
-	: RETURN expression SEMICOLON | returning_condition
+	: RETURN (expression |  VOID) SEMICOLON | returning_condition
 	;
 
 returning_condition
@@ -44,11 +42,51 @@ returning_condition
 	;
 
 function_call
-	: IDENTIFIER function_arguments
+	: (PRINT | IDENTIFIER | func_ptr) sequential_function_arguments | key_value_function_arguments
+	;
+
+sequential_function_arguments
+	: LPRAN (() | ((expression COMMA)*) expression) RPRAN
+	;
+
+key_value_function_arguments
+	: LPRAN (() | ((assign_value_to_key COMMA)*) assign_value_to_key) RPRAN
+	;
+
+assign_value_to_key
+	: IDENTIFIER ASSIGN expression
 	;
 
 expression
-	: IDENTIFIER
+	: IDENTIFIER | value | function_call
+	;
+
+value
+	: primitive_value | non_primitive_value
+	;
+
+primitive_value
+	: INT | BOOL | STRING
+	;
+
+non_primitive_value
+	: list | func_ptr
+	;
+
+list
+	: LBRACK (() | ((expression COMMA)*) expression) RBRACK
+	;
+
+func_ptr
+	: LPRAN IDENTIFIER RPRAN ARROW multi_body
+	;
+
+WS
+	: [ \t\r\n]+ -> skip
+	;
+
+MAIN
+	: 'main'
 	;
 
 INT
@@ -61,6 +99,14 @@ BOOL
 
 STRING
 	: '"' ~('"') '"'
+	;
+
+PRINT
+	: 'print'
+	;
+
+ASSIGN
+	: '='
 	;
 
 LBRACK
@@ -79,6 +125,10 @@ FUNCTION
 	: 'func'
 	;
 
+VOID
+	: 'void'
+	;
+
 LBRACE
 	: '{'
 	;
@@ -89,10 +139,6 @@ RBRACE
 
 RETURN
 	: 'return'
-	;
-
-WS
-	: [ \t\r\n]+ -> skip
 	;
 
 LPRAN
@@ -117,6 +163,10 @@ IF
 
 ELSE
 	: 'else'
+	;
+
+ARROW
+	: '->'
 	;
 
 IDENTIFIER
