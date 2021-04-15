@@ -22,34 +22,45 @@ function_body
 	;
 
 single_body
-	: returning_statement | ()
+	: returning_statement
 	;
 
 multi_body
-	: LBRACE statement* returning_statement RBRACE
+	: LBRACE (statement | returning_statement)* returning_statement (statement | returning_statement)* RBRACE
 	;
 
 statement
-	: function_call SEMICOLON
+	: (function_call SEMICOLON) | conditional_statement
 	;
 
 returning_statement
-	: (RETURN (expression | VOID) SEMICOLON) | returning_condition
+	: (RETURN (expression | VOID) SEMICOLON) | full_returning_condition
 	;
 
-returning_condition
-	: (IF expression COLON returning_statement) (ELSE COLON returning_statement)?
+full_returning_condition
+	: (IF expression COLON returning_statement) (ELSE COLON returning_statement)
+	;
+
+conditional_statement
+	: ((IF expression COLON statement) (ELSE COLON statement)?)
+	| (IF expression COLON returning_statement)
+	| ((IF expression COLON statement) (ELSE COLON returning_statement))
+	| ((IF expression COLON returning_statement) (ELSE COLON statement))
 	;
 
 function_call
-	: aaa bbb
+	: (PRINT function_argument_to_call) | dynamic_call
 	;
 
-aaa
-	: PRINT | IDENTIFIER | func_ptr
+dynamic_call
+	: multi_callable function_argument_to_call+
 	;
 
-bbb
+multi_callable
+	: IDENTIFIER | func_ptr
+	;
+
+function_argument_to_call
 	: sequential_function_arguments | key_value_function_arguments
 	;
 
@@ -66,7 +77,7 @@ assign_value_to_key
 	;
 
 expression
-	: value | function_call | IDENTIFIER
+	: value | function_call | indexed_list | IDENTIFIER
 	;
 
 mathematical
@@ -89,12 +100,28 @@ list
 	: LBRACK (() | ((expression COMMA)*) expression) RBRACK
 	;
 
+indexed_list
+	: (function_call | IDENTIFIER) indexing+
+	;
+
+indexing
+	: LBRACK expression RBRACK
+	;
+
 func_ptr
 	: LPRAN IDENTIFIER RPRAN ARROW multi_body
 	;
 
+COMMENT
+	: SHARP (~('\n'))* -> skip
+	;
+
 WS
 	: [ \t\r\n]+ -> skip
+	;
+
+SHARP
+	: '#'
 	;
 
 MAIN
