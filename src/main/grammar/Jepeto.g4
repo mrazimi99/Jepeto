@@ -77,11 +77,19 @@ assign_value_to_key
 	;
 
 expression
-	: value | function_call | indexed_list | list_size | (LPRAN expression RPRAN) | IDENTIFIER
+	: (term PLUS expression) | term
 	;
 
-mathematical
-	:
+term
+	: (factor MULTIPLY term) | factor
+	;
+
+factor
+	: atomic_expression | (LPRAN expression RPRAN)
+	;
+
+atomic_expression
+	: value | function_call | indexed_list | list_size | (LPRAN expression RPRAN) | IDENTIFIER
 	;
 
 value
