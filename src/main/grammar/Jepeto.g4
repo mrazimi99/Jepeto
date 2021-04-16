@@ -77,7 +77,7 @@ assign_value_to_key
 	;
 
 expression
-	: value | function_call | indexed_list | IDENTIFIER
+	: value | function_call | indexed_list | list_size | (LPRAN expression RPRAN) | IDENTIFIER
 	;
 
 mathematical
@@ -101,7 +101,11 @@ list
 	;
 
 indexed_list
-	: (function_call | IDENTIFIER) indexing+
+	: (indexed_list_left) indexing+
+	;
+
+indexed_list_left
+	: value | function_call | IDENTIFIER | (LPRAN indexed_list RPRAN) | (LPRAN indexed_list_left RPRAN)
 	;
 
 indexing
@@ -110,6 +114,14 @@ indexing
 
 func_ptr
 	: LPRAN IDENTIFIER RPRAN ARROW multi_body
+	;
+
+list_size
+	: (list_size_left) (DOT SIZE)+
+	;
+
+list_size_left
+	: value | function_call | indexed_list | IDENTIFIER | (LPRAN list_size RPRAN) | (LPRAN list_size_left RPRAN)
 	;
 
 COMMENT
@@ -142,6 +154,14 @@ STRING
 
 PRINT
 	: 'print'
+	;
+
+DOT
+	: '.'
+	;
+
+SIZE
+	: 'size'
 	;
 
 ASSIGN
@@ -206,6 +226,50 @@ ELSE
 
 ARROW
 	: '->'
+	;
+
+CONCAT
+	: '::'
+	;
+
+NOT
+	: '~'
+	;
+
+PLUS
+	: '+'
+	;
+
+MINUS
+	: '-'
+	;
+
+MULTIPLY
+	: '*'
+	;
+
+DEVISION
+	: '/'
+	;
+
+LESS_THAN
+	: '<'
+	;
+
+GREATER_THAN
+	: '>'
+	;
+
+IS_NOT
+	: 'is not'
+	;
+
+AND
+	: 'and'
+	;
+
+OR
+	: 'or'
 	;
 
 IDENTIFIER
