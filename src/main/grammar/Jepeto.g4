@@ -1,5 +1,9 @@
 grammar Jepeto;
 
+@header {
+    package main.grammar;
+}
+
 jepeto: function_definition* main function_definition* EOF;
 
 main: MAIN COLON {System.out.println("Main");} ((PRINT {System.out.println("Built-in : print");} sequential_function_arguments) | ({System.out.println("FunctionCall");} function_call)) SEMICOLON;
@@ -12,18 +16,18 @@ function_body: single_body | multi_body;
 
 single_body: returning_statement;
 
-multi_body: LBRACE (statement | returning_statement)* returning_statement (statement | returning_statement)* RBRACE;
+multi_body: LBRACE (statement | returning_statement)* returning_statement (statement | returning_statement)* RBRACE; simple_multi_body: LBRACE (statement | returning_statement)* RBRACE;
 
 statement: (((PRINT {System.out.println("Built-in : print");} sequential_function_arguments) | ({System.out.println("FunctionCall");} function_call)) SEMICOLON) | conditional_statement;
 
 returning_statement: (RETURN {System.out.println("Return");} (expression | VOID) SEMICOLON) | full_returning_condition;
 
-full_returning_condition: (IF {System.out.println("Conditional : if");} expression COLON returning_statement) (ELSE {System.out.println("Conditional : else");} COLON returning_statement);
+full_returning_condition: ((IF {System.out.println("Conditional : if");} expression COLON multi_body) | (IF {System.out.println("Conditional : if");} expression COLON returning_statement)) ((ELSE {System.out.println("Conditional : else");} COLON multi_body) | (ELSE {System.out.println("Conditional : else");} COLON returning_statement));
 
-conditional_statement: ((IF {System.out.println("Conditional : if");} expression COLON statement) (ELSE {System.out.println("Conditional : else");} COLON statement)?)
-	| (IF {System.out.println("Conditional : if");} expression COLON returning_statement)
-	| ((IF {System.out.println("Conditional : if");} expression COLON statement) (ELSE {System.out.println("Conditional : else");} COLON returning_statement))
-	| ((IF {System.out.println("Conditional : if");} expression COLON returning_statement) (ELSE {System.out.println("Conditional : else");} COLON statement));
+conditional_statement: (((IF {System.out.println("Conditional : if");} expression COLON simple_multi_body) | (IF {System.out.println("Conditional : if");} expression COLON statement)) ((ELSE {System.out.println("Conditional : else");} COLON simple_multi_body) | (ELSE {System.out.println("Conditional : else");} COLON statement))?)
+	| ((IF {System.out.println("Conditional : if");} expression COLON multi_body) | (IF {System.out.println("Conditional : if");} expression COLON returning_statement))
+	| (((IF {System.out.println("Conditional : if");} expression COLON simple_multi_body) | (IF {System.out.println("Conditional : if");} expression COLON statement)) ((ELSE {System.out.println("Conditional : else");} COLON multi_body) | (ELSE {System.out.println("Conditional : else");} COLON returning_statement)))
+	| (((IF {System.out.println("Conditional : if");} expression COLON multi_body) | (IF {System.out.println("Conditional : if");} expression COLON returning_statement)) ((ELSE {System.out.println("Conditional : else");} COLON simple_multi_body) | (ELSE {System.out.println("Conditional : else");} COLON statement)));
 
 function_call: dynamic_call;
 
@@ -53,7 +57,7 @@ multiply_expression: unary_expression (multiply unary_expression {System.out.pri
 
 unary_expression: (single_operator unary_expression {System.out.println("Operator : " + $single_operator.text);}) | atomic_expression;
 
-atomic_expression: value | function_call | indexed_list | list_size | (LPRAN expression RPRAN) | IDENTIFIER;
+atomic_expression: value | function_call | indexed_list | list_size | concated_list | (LPRAN expression RPRAN) | IDENTIFIER;
 
 value: primitive_value | non_primitive_value;
 
@@ -65,7 +69,7 @@ list: LBRACK (() | ((expression COMMA)*) expression) RBRACK;
 
 indexed_list: (indexed_list_left) indexing+;
 
-indexed_list_left: value | function_call | IDENTIFIER | (LPRAN indexed_list RPRAN) | (LPRAN indexed_list_left RPRAN);
+indexed_list_left: value | function_call | IDENTIFIER | (LPRAN indexed_list RPRAN) | (LPRAN indexed_list_left RPRAN) | (LPRAN expression RPRAN);
 
 indexing: LBRACK expression RBRACK;
 
@@ -73,7 +77,9 @@ func_ptr: {System.out.println("Anonymous Function");} function_definition_argume
 
 list_size: (list_size_left) (DOT SIZE {System.out.println("Size");})+;
 
-list_size_left: value | function_call | indexed_list | IDENTIFIER | (LPRAN list_size RPRAN) | (LPRAN list_size_left RPRAN);
+list_size_left: value | function_call | indexed_list | IDENTIFIER | (LPRAN list_size RPRAN) | (LPRAN list_size_left RPRAN) | (LPRAN expression RPRAN);
+
+concated_list : (value | function_call | indexed_list | list_size | (LPRAN expression RPRAN) | IDENTIFIER) CONCAT expression {System.out.println("Operator : ::");};
 
 equality: EQUALS | NOT_EQUALS;
 relation: GREATER_THAN | LESS_THAN;
