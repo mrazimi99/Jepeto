@@ -22,7 +22,7 @@ program returns [Program prog]: {$prog = new Program(); $prog.setLine(1);} (func
 
 functionDeclaration returns [FunctionDeclaration funcDec]: f = FUNC name = identifier args = functionArgumentsDeclaration COLON bodyStmt = body {$funcDec = new FunctionDeclaration(); $funcDec.setFunctionName($name.id); $funcDec.setArgs($args.args); $funcDec.setBody($bodyStmt.bodyStatement); $funcDec.setLine($f.getLine());};
 
-functionArgumentsDeclaration returns [ArrayList<Identifier> args, Token lpar]: {$args = new ArrayList<>();} lp = LPAR {$lpar = $lp;} (arg1 = IDENTIFIER {$args.add(new Identifier($arg1.text));} (COMMA arg2 = IDENTIFIER {if ($arg2.text != null) {$args.add(new Identifier($arg2.text));}})*)? RPAR ;
+functionArgumentsDeclaration returns [ArrayList<Identifier> args, Token lpar]: {$args = new ArrayList<>();} lp = LPAR {$lpar = $lp;} (arg1 = identifier {$args.add($arg1.id);} (COMMA arg2 = identifier {if ($arg2.text != null) {$args.add($arg2.id);}})*)? RPAR ;
 
 body returns [Statement bodyStatement]: (single = singleStatement {$bodyStatement = $single.bodyStatement;}) | (blockStatement = block {$bodyStatement = $blockStatement.blockStmt;});
 
@@ -52,7 +52,7 @@ singleStatement returns [Statement bodyStatement]: (returnStmt = returnStatement
 
 block returns [BlockStmt blockStmt]: lbrace = LBRACE {$blockStmt = new BlockStmt();} ((stmt1 = statement {$blockStmt.addStatement($stmt1.stmt);})* ((returnStmt = returnStatement {$blockStmt.addStatement($returnStmt.returnStmt);}) | (conditionalStmt = ifStatementWithReturn {$blockStmt.addStatement($conditionalStmt.conditionalStmt);})) (stmt2 = statement {$blockStmt.addStatement($stmt2.stmt);})*) {$blockStmt.setLine($lbrace.getLine());} RBRACE;
 
-conditionBody returns [BlockStmt bodyStatement]: {$bodyStatement = new BlockStmt();} (LBRACE (stmt1 = statement {$bodyStatement.addStatement($stmt1.stmt);})* RBRACE) | {$bodyStatement = new BlockStmt();} (stmt2 = statement {$bodyStatement.addStatement($stmt2.stmt);});
+conditionBody returns [Statement bodyStatement]: {$bodyStatement = new BlockStmt();} (LBRACE (stmt1 = statement {((BlockStmt)$bodyStatement).addStatement($stmt1.stmt);})* RBRACE) |  (stmt2 = statement {$bodyStatement = ($stmt2.stmt);});
 
 expression returns [Expression expr]: e1 = andExpression {$expr = $e1.and;} (op = OR e2 = andExpression {$expr = new BinaryExpression($expr, $e2.and, BinaryOperator.or); $expr.setLine($op.getLine());})*;
 

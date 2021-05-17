@@ -1,10 +1,12 @@
 package main.symbolTable.items;
 
 import main.ast.nodes.declaration.FunctionDeclaration;
+import main.compileErrors.nameErrors.DuplicateFunction;
 import main.symbolTable.SymbolTable;
 
 public class FunctionSymbolTableItem extends SymbolTableItem {
     public static final String START_KEY = "Function_";
+    public Exception error;
     private SymbolTable FunctionSymbolTable;
     private FunctionDeclaration funcDeclaration;
 
