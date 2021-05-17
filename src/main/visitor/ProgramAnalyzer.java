@@ -11,6 +11,8 @@ import main.ast.nodes.expression.values.primitive.IntValue;
 import main.ast.nodes.expression.values.primitive.StringValue;
 import main.ast.nodes.statement.*;
 import main.symbolTable.SymbolTable;
+import main.symbolTable.exceptions.ItemAlreadyExistsException;
+import main.symbolTable.items.FunctionSymbolTableItem;
 
 public class ProgramAnalyzer extends Visitor<Void> {
 	private int numberOfErrors;
@@ -27,13 +29,23 @@ public class ProgramAnalyzer extends Visitor<Void> {
 	public Void visit(Program program) {
 		SymbolTable.root = new SymbolTable();
 		SymbolTable.push(SymbolTable.root);
-		program.getMain().accept(this);
 
+		for (FunctionDeclaration functionDeclaration : program.getFunctions())
+			functionDeclaration.accept(this);
+
+		program.getMain().accept(this);
 		return null;
 	}
 
 	@Override
 	public Void visit(FunctionDeclaration functionDeclaration) {
+		FunctionSymbolTableItem functionSymbolTableItem = new FunctionSymbolTableItem(functionDeclaration);
+
+		try {
+			SymbolTable.root.put(functionSymbolTableItem);
+		} catch (ItemAlreadyExistsException e) {
+			e.printStackTrace();
+		}
 		return null;
 	}
 
