@@ -11,8 +11,7 @@ public class Program extends Node {
     private ArrayList<FunctionDeclaration> functions = new ArrayList<>();
     private MainDeclaration main = new MainDeclaration();
 
-    public Program(){
-
+    public Program() {
     }
 
 
