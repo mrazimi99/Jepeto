@@ -35,6 +35,23 @@ public class ProgramAnalyzer extends Visitor<Void> {
 		System.out.println(exception.getMessage());
 	}
 
+	private void checkDeclareError(Expression expression) {
+		if (expression.getClass() == Identifier.class) {
+			Identifier identifier = (Identifier) expression;
+
+			try {
+				SymbolTable.top.getItem(VariableSymbolTableItem.START_KEY + identifier.getName());
+			} catch (ItemNotFoundException e) {
+				try {
+					SymbolTable.root.getItem(FunctionSymbolTableItem.START_KEY + identifier.getName());
+				} catch (ItemNotFoundException itemNotFoundException) {
+					printException(new VariableNotDeclared(expression.getLine(), identifier.getName()));
+					numberOfErrors++;
+				}
+			}
+		}
+	}
+
 	@Override
 	public Void visit(Program program) {
 		SymbolTable.root = new SymbolTable();
@@ -145,6 +162,7 @@ public class ProgramAnalyzer extends Visitor<Void> {
 
 	@Override
 	public Void visit(PrintStmt print) {
+		checkDeclareError(print.getArg());
 		print.getArg().accept(this);
 		return null;
 	}
@@ -233,6 +251,8 @@ public class ProgramAnalyzer extends Visitor<Void> {
 
 	@Override
 	public Void visit(ListAccessByIndex listAccessByIndex) {
+		checkDeclareError(listAccessByIndex.getInstance());
+		checkDeclareError(listAccessByIndex.getIndex());
 		listAccessByIndex.getInstance().accept(this);
 		listAccessByIndex.getIndex().accept(this);
 		return null;
@@ -253,9 +273,12 @@ public class ProgramAnalyzer extends Visitor<Void> {
 			}
 		}
 
-		if (methodCall.getArgs() != null)
-			for (Expression expression : methodCall.getArgs())
+		if (methodCall.getArgs() != null) {
+			for (Expression expression : methodCall.getArgs()) {
+				checkDeclareError(expression);
 				expression.accept(this);
+			}
+		}
 
 		if (methodCall.getArgsWithKey() != null) {
 			for (Map.Entry<Identifier, Expression> entry : methodCall.getArgsWithKey().entrySet()) {
@@ -333,8 +356,10 @@ public class ProgramAnalyzer extends Visitor<Void> {
 
 	@Override
 	public Void visit(ListValue listValue) {
-		for (Expression expression : listValue.getElements())
+		for (Expression expression : listValue.getElements()) {
+			checkDeclareError(expression);
 			expression.accept(this);
+		}
 		return null;
 	}
 
@@ -360,6 +385,7 @@ public class ProgramAnalyzer extends Visitor<Void> {
 
 	@Override
 	public Void visit(ListSize listSize) {
+		checkDeclareError(listSize.getInstance());
 		listSize.getInstance().accept(this);
 		return null;
 	}

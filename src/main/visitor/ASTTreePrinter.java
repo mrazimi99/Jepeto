@@ -154,7 +154,7 @@ public class ASTTreePrinter extends Visitor<Void> {
         if (funcCall.getArgsWithKey() != null) {
             ArrayList<Identifier> keySet = new ArrayList<>(funcCall.getArgsWithKey().keySet());
             ArrayList<Expression> expressions = new ArrayList<>(funcCall.getArgsWithKey().values());
-            for (int i = keySet.size() - 1; i >= 0; i--) {
+            for (int i = 0; i < keySet.size(); i++) {
                 keySet.get(i).accept(this);
                 expressions.get(i).accept(this);
             }

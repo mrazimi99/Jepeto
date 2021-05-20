@@ -10,7 +10,7 @@ grammar Jepeto;
     import main.ast.nodes.statement.*;
 
     import java.util.ArrayList;
-    import java.util.HashMap;
+    import java.util.LinkedHashMap;
     import java.util.Map;
 
     import org.antlr.v4.runtime.Token;
@@ -34,11 +34,11 @@ functionArguments returns [ArrayList<Expression> args, Map<Identifier, Expressio
 
 splitedExpressionsWithComma returns [ArrayList<Expression> args]: {$args = new ArrayList<>();} (expr1 = expression {if ($expr1.text != null) $args.add($expr1.expr);} (COMMA expr2 = expression {if ($expr2.text != null) $args.add($expr2.expr);})*)?;
 
-splitedExpressionsWithCommaAndKey returns [Map<Identifier, Expression> args]: {$args = new HashMap<>();} (id1 = identifier ASSIGN expr1 = expression {if ($expr1.text != null) $args.put($id1.id, $expr1.expr);} (COMMA id2 = identifier ASSIGN expr2 = expression {if ($expr2.text != null) $args.put($id2.id, $expr2.expr);})*)?;
+splitedExpressionsWithCommaAndKey returns [Map<Identifier, Expression> args]: {$args = new LinkedHashMap<>();} (id1 = identifier ASSIGN expr1 = expression {if ($expr1.text != null) $args.put($id1.id, $expr1.expr);} (COMMA id2 = identifier ASSIGN expr2 = expression {if ($expr2.text != null) $args.put($id2.id, $expr2.expr);})*)?;
 
 functionCallStatement returns [FunctionCallStmt functionCallStmt]: funcCall = functionCall {$functionCallStmt = new FunctionCallStmt($funcCall.funcCall); $functionCallStmt.setLine($funcCall.funcCall.getLine());} SEMICOLLON;
 
-returnStatement returns [ReturnStmt returnStmt]: ret = RETURN (expr = expression | void_ = voidValue) {if ($void_.text == null) {$returnStmt = new ReturnStmt($expr.expr);} else {$returnStmt = new ReturnStmt();} $returnStmt.setLine($ret.getLine());} SEMICOLLON;
+returnStatement returns [ReturnStmt returnStmt]: ret = RETURN (expr = expression | void_ = voidValue) {if ($void_.text == null) {$returnStmt = new ReturnStmt($expr.expr);} else {$returnStmt = new ReturnStmt($void_.void_);} $returnStmt.setLine($ret.getLine());} SEMICOLLON;
 
 ifStatement returns [ConditionalStmt conditionalStmt]: if_ = IF expr = expression COLON body1 = conditionBody (else_ = ELSE COLON body2 = conditionBody)? {$conditionalStmt = new ConditionalStmt($expr.expr, $body1.bodyStatement); if ($else_.text != null) {$conditionalStmt.setElseBody($body2.bodyStatement);} $conditionalStmt.setLine($if_.getLine());};
 
@@ -52,7 +52,7 @@ singleStatement returns [Statement bodyStatement]: (returnStmt = returnStatement
 
 block returns [BlockStmt blockStmt]: lbrace = LBRACE {$blockStmt = new BlockStmt();} ((stmt1 = statement {$blockStmt.addStatement($stmt1.stmt);})* ((returnStmt = returnStatement {$blockStmt.addStatement($returnStmt.returnStmt);}) | (conditionalStmt = ifStatementWithReturn {$blockStmt.addStatement($conditionalStmt.conditionalStmt);})) (stmt2 = statement {$blockStmt.addStatement($stmt2.stmt);})*) {$blockStmt.setLine($lbrace.getLine());} RBRACE;
 
-conditionBody returns [Statement bodyStatement]: {$bodyStatement = new BlockStmt();} (LBRACE (stmt1 = statement {((BlockStmt)$bodyStatement).addStatement($stmt1.stmt);})* RBRACE) |  (stmt2 = statement {$bodyStatement = ($stmt2.stmt);});
+conditionBody returns [Statement bodyStatement]: {$bodyStatement = new BlockStmt();} (lbrace = LBRACE (stmt1 = statement {((BlockStmt)$bodyStatement).addStatement($stmt1.stmt);})* {$bodyStatement.setLine($lbrace.getLine());} RBRACE) |  (stmt2 = statement {$bodyStatement = ($stmt2.stmt);});
 
 expression returns [Expression expr]: e1 = andExpression {$expr = $e1.and;} (op = OR e2 = andExpression {$expr = new BinaryExpression($expr, $e2.and, BinaryOperator.or); $expr.setLine($op.getLine());})*;
 
