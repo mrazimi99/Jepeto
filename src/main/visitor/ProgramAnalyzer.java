@@ -145,6 +145,7 @@ public class ProgramAnalyzer extends Visitor<Void> {
 
 	@Override
 	public Void visit(ConditionalStmt conditionalStmt) {
+		checkDeclareError(conditionalStmt.getCondition());
 		conditionalStmt.getCondition().accept(this);
 		conditionalStmt.getThenBody().accept(this);
 
