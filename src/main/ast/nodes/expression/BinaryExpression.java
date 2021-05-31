@@ -3,7 +3,7 @@ package main.ast.nodes.expression;
 import main.ast.nodes.expression.operators.BinaryOperator;
 import main.visitor.IVisitor;
 
-//line -> OR or AND or EQUAL or NOT_EQUAL or GREATER_THAN or LESS_THAN or PLUS or MINUS or MULT or DIVIDE or APPEND
+//line -> ASSIGN or OR or AND or EQUAL or NOT_EQUAL or GREATER_THAN or LESS_THAN or PLUS or MINUS or MULT or DIVIDE or Append
 public class BinaryExpression extends Expression {
     private Expression firstOperand;
     private Expression secondOperand;
@@ -18,7 +18,6 @@ public class BinaryExpression extends Expression {
     public Expression getFirstOperand() {
         return firstOperand;
     }
-
     public void setFirstOperand(Expression firstOperand) {
         this.firstOperand = firstOperand;
     }
@@ -26,7 +25,6 @@ public class BinaryExpression extends Expression {
     public Expression getSecondOperand() {
         return secondOperand;
     }
-
     public void setSecondOperand(Expression secondOperand) {
         this.secondOperand = secondOperand;
     }
@@ -34,7 +32,6 @@ public class BinaryExpression extends Expression {
     public BinaryOperator getBinaryOperator() {
         return binaryOperator;
     }
-
     public void setBinaryOperator(BinaryOperator binaryOperator) {
         this.binaryOperator = binaryOperator;
     }

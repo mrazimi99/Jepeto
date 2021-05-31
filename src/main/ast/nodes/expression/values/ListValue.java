@@ -2,15 +2,13 @@ package main.ast.nodes.expression.values;
 
 import main.ast.nodes.expression.Expression;
 import main.visitor.IVisitor;
-
 import java.util.ArrayList;
 
 //line -> LBRACK before elements
 public class ListValue extends Value{
     private ArrayList<Expression> elements = new ArrayList<>();
 
-    public ListValue() {
-    }
+    public ListValue() {}
 
     public ListValue(ArrayList<Expression> elements) {
         this.elements = elements;

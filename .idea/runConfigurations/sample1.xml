@@ -3,7 +3,7 @@
     <option name="ALTERNATIVE_JRE_PATH" value="15" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="main.Jepeto" />
-    <module name="Jepeto-Phase2" />
+    <module name="Jepeto_Phase3" />
     <option name="PROGRAM_PARAMETERS" value="samples/sample1.jp" />
     <method v="2">
       <option name="Make" enabled="true" />

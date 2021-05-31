@@ -1,40 +1,28 @@
-main: f(a = 1, c = 2);
+main : start(start(1));
 
-func f(a, b):{
-    return dd;
-    if a > b:
-        return d;
-    else:
-        return e;
-
-    return f;
-    print(g());
+func start(arg1) : {
+    f(arg1);
+    return arg1;
 }
 
-func f(a, c):
-{
-    return a;
-    print(h(a = 1, b =  2));
-}
-
-func f(x, y):
-    return x;
-
-func g(a, b, c, a, b, b):{
-    return a;
-    return f(x = 1, y = 2);
+func f(arg1) : {
+    if (arg1) :
+        return g;
+    else : {
+        if (arg1 * true + arg1 > 10) :
+            k(arg1 , arg1, true);
+        return arg1;
     }
 
-func plc():
-    return plc();
-
-func PLC(plc, os, db):
-    return plc + os + db * a + CN;
-
-func CN(a, aa, aaa, aaaa):{
-    print(a + aa + aa);
-    return Cn(1, 2, 3);
 }
 
-func conflict(f, PLC):
-    return Cn(a = 50);
+func g(a, b) : {
+    if(a) :
+        return a;
+    return b.size;
+}
+
+func k(a, b, c) : {
+    return f(a)(b, c);
+    return [1, "str", c][~c];
+}

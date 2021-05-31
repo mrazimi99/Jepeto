@@ -7,8 +7,7 @@ import main.visitor.IVisitor;
 public class ReturnStmt extends Statement{
     private Expression returnedExpr;
 
-    public ReturnStmt() {
-    }
+    public ReturnStmt() {}
 
     public ReturnStmt(Expression returnedExpr) {
         this.returnedExpr = returnedExpr;
@@ -17,7 +16,6 @@ public class ReturnStmt extends Statement{
     public Expression getReturnedExpr() {
         return returnedExpr;
     }
-
     public void setReturnedExpr(Expression returnedExpr) {
         this.returnedExpr = returnedExpr;
     }

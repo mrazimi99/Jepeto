@@ -1,18 +1,19 @@
-Line 1: Argument c not declared in function f
-Line 4: Variable dd not declared
-Line 6: Variable d not declared
-Line 8: Variable e not declared
-Line 14: Duplicate function f
-Line 17: Function h not declared
-Line 20: Duplicate function f
-Line 23: Duplicate argument a
-Line 23: Duplicate argument b
-Line 23: Duplicate argument b
-Line 25: Argument x not declared in function f
-Line 25: Argument y not declared in function f
-Line 31: Name of argument plc conflicts with a function’s name
-Line 32: Variable a not declared
-Line 36: Function Cn not declared
-Line 39: Name of argument f conflicts with a function’s name
-Line 39: Name of argument PLC conflicts with a function’s name
-Line 40: Function Cn not declared
+start
+[IntType]
+IntType
+f
+[IntType]
+FptrType
+g
+[IntType, BoolType]
+IntType
+k
+[IntType, IntType, BoolType]
+IntType
+Line 9: Condition must be bool
+Line 12: Unsupported operand type for operator mult
+Line 14: Return value does not match with function return type
+Line 20: Condition must be bool
+Line 22: Get size of a non-list
+Line 27: List index is not an integer
+Line 27: Elements of the list have different types

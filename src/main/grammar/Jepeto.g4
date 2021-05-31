@@ -1,93 +1,373 @@
 grammar Jepeto;
 
 @header{
-    import main.ast.nodes.*;
-    import main.ast.nodes.declaration.*;
-    import main.ast.nodes.expression.*;
-    import main.ast.nodes.expression.operators.*;
-    import main.ast.nodes.expression.values.*;
-    import main.ast.nodes.expression.values.primitive.*;
-    import main.ast.nodes.statement.*;
+     import main.ast.nodes.*;
+     import main.ast.nodes.declaration.*;
+     import main.ast.nodes.expression.*;
+     import main.ast.nodes.expression.operators.*;
+     import main.ast.nodes.expression.values.*;
+     import main.ast.nodes.expression.values.primitive.*;
+     import main.ast.nodes.statement.*;
+     import java.util.*;
+ }
 
-    import java.util.ArrayList;
-    import java.util.LinkedHashMap;
-    import java.util.Map;
+jepeto returns [Program jepetoProgram] :
+    p = program
+    {$jepetoProgram = $p.programRet;}
+    EOF;
 
-    import org.antlr.v4.runtime.Token;
-}
+program returns [Program programRet] :
+    {$programRet = new Program();
+     $programRet.setLine(1);}
+    (f1 = functionDeclaration
+    {$programRet.addFunction($f1.funcDecRet);}
+    )*
+    m = main
+    {$programRet.setMain($m.mainRet);}
+    (f2 = functionDeclaration
+    {$programRet.addFunction($f2.funcDecRet);}
+    )*;
 
-jepeto returns [Program jepetoProgram]: prog = program EOF {$jepetoProgram = $prog.prog;};
+functionDeclaration returns [FunctionDeclaration funcDecRet] :
+    {$funcDecRet = new FunctionDeclaration();}
+    func = FUNC
+    {$funcDecRet.setLine($func.getLine());}
+    id = identifier
+    {$funcDecRet.setFunctionName($id.idRet);}
+    args = functionArgumentsDeclaration
+    {$funcDecRet.setArgs($args.argsRet);}
+    COLON  st = body
+    {$funcDecRet.setBody($st.stmt);};
 
-program returns [Program prog]: {$prog = new Program(); $prog.setLine(1);} (funcDec1 = functionDeclaration {$prog.addFunction($funcDec1.funcDec);})*  (mainDec = main {$prog.setMain($mainDec.mainDec);}) (funcDec2 = functionDeclaration {$prog.addFunction($funcDec2.funcDec);})*;
+functionArgumentsDeclaration returns [ArrayList<Identifier> argsRet, int line] :
+    {$argsRet = new ArrayList<>();}
+    par = LPAR
+    {$line = $par.getLine();}
+    (id1 = identifier
+    {$argsRet.add($id1.idRet);}
+    (COMMA id2 = identifier
+    {$argsRet.add($id2.idRet);}
+    )*)? RPAR ;
 
-functionDeclaration returns [FunctionDeclaration funcDec]: f = FUNC name = identifier args = functionArgumentsDeclaration COLON bodyStmt = body {$funcDec = new FunctionDeclaration(); $funcDec.setFunctionName($name.id); $funcDec.setArgs($args.args); $funcDec.setBody($bodyStmt.bodyStatement); $funcDec.setLine($f.getLine());};
 
-functionArgumentsDeclaration returns [ArrayList<Identifier> args, Token lpar]: {$args = new ArrayList<>();} lp = LPAR {$lpar = $lp;} (arg1 = identifier {$args.add($arg1.id);} (COMMA arg2 = identifier {if ($arg2.text != null) {$args.add($arg2.id);}})*)? RPAR ;
+body returns [Statement stmt]:
+    st1 = singleStatement
+    {$stmt = $st1.stmt;}
+    | st2 = block
+    {$stmt = $st2.stmt;}
+    ;
 
-body returns [Statement bodyStatement]: (single = singleStatement {$bodyStatement = $single.bodyStatement;}) | (blockStatement = block {$bodyStatement = $blockStatement.blockStmt;});
+main returns [MainDeclaration mainRet] :
+    {$mainRet = new MainDeclaration();}
+    m= MAIN
+    {$mainRet.setLine($m.getLine());}
+    COLON (f = functionCallStatement
+    {$mainRet.setBody($f.stmt);}
+    | p = printStatement
+    {$mainRet.setBody($p.stmt);}
+    )? ;
 
-main returns [MainDeclaration mainDec]: name = MAIN {$mainDec = new MainDeclaration();} COLON ((functionCallStmt = functionCallStatement {$mainDec.setBody($functionCallStmt.functionCallStmt);}) | (printStmt = printStatement {$mainDec.setBody($printStmt.printStmt);})) {$mainDec.setLine($name.getLine());};
+functionCall returns [FunctionCall fcallRet]
+    locals [Expression expr]:
+    id = identifier
+    {$expr = $id.idRet;}
+    (lpar = LPAR f = functionArguments
+    {FunctionCall fcall = new FunctionCall($expr, $f.funcArgRet, $f.funcArgWithKeyRet);
+     fcall.setLine($lpar.getLine());
+     $expr = fcall;}
+    RPAR)*
+    par = LPAR farg = functionArguments
+    {$fcallRet = new FunctionCall($expr, $farg.funcArgRet, $farg.funcArgWithKeyRet);
+     $fcallRet.setLine($par.getLine());}
+    RPAR;
 
-functionCall returns [FunctionCall funcCall, Expression expr]: id = identifier {$expr = $id.id;} (lpar1 = LPAR funcCallArgs1 = functionArguments RPAR {$expr = new FunctionCall($expr, $funcCallArgs1.args, $funcCallArgs1.argsWithKey); $expr.setLine($lpar1.getLine());})* (lpar2 = LPAR funcCallArgs2 = functionArguments RPAR {$funcCall = new FunctionCall($expr, $funcCallArgs2.args, $funcCallArgs2.argsWithKey); $funcCall.setLine($lpar2.getLine());});
+functionArguments returns [ArrayList<Expression> funcArgRet, Map<Identifier, Expression> funcArgWithKeyRet]:
+    {$funcArgRet = new ArrayList<>();
+     $funcArgWithKeyRet = new HashMap<>();}
+    s1 = splitedExpressionsWithComma
+    {$funcArgRet = $s1.arguments;}
+    | s2 = splitedExpressionsWithCommaAndKey
+    {$funcArgWithKeyRet = $s2.arguments;}
+    ;
 
-functionArguments returns [ArrayList<Expression> args, Map<Identifier, Expression> argsWithKey]: (serial = splitedExpressionsWithComma {$args = $serial.args; $argsWithKey = null;}) | (keyVal = splitedExpressionsWithCommaAndKey {$args = null; $argsWithKey = $keyVal.args;});
+splitedExpressionsWithComma returns [ArrayList<Expression> arguments] :
+    {$arguments = new ArrayList<>();}
+    (e1 = expression
+    {$arguments.add($e1.expr);}
+    (COMMA e2 = expression
+    {$arguments.add($e2.expr);}
+    )*)?;
 
-splitedExpressionsWithComma returns [ArrayList<Expression> args]: {$args = new ArrayList<>();} (expr1 = expression {if ($expr1.text != null) $args.add($expr1.expr);} (COMMA expr2 = expression {if ($expr2.text != null) $args.add($expr2.expr);})*)?;
+splitedExpressionsWithCommaAndKey returns [Map<Identifier, Expression> arguments] :
+    {$arguments = new LinkedHashMap<>();}
+    (id1 = identifier ASSIGN e1 = expression
+    {$arguments.put($id1.idRet, $e1.expr);}
+    (COMMA  id2 = identifier ASSIGN e2 = expression
+    {$arguments.put($id2.idRet, $e2.expr);}
+    )*)?;
 
-splitedExpressionsWithCommaAndKey returns [Map<Identifier, Expression> args]: {$args = new LinkedHashMap<>();} (id1 = identifier ASSIGN expr1 = expression {if ($expr1.text != null) $args.put($id1.id, $expr1.expr);} (COMMA id2 = identifier ASSIGN expr2 = expression {if ($expr2.text != null) $args.put($id2.id, $expr2.expr);})*)?;
+functionCallStatement returns [FunctionCallStmt stmt] :
+    f = functionCall
+    {$stmt = new FunctionCallStmt($f.fcallRet);
+     $stmt.setLine($f.fcallRet.getLine());}
+    SEMICOLLON;
 
-functionCallStatement returns [FunctionCallStmt functionCallStmt]: funcCall = functionCall {$functionCallStmt = new FunctionCallStmt($funcCall.funcCall); $functionCallStmt.setLine($funcCall.funcCall.getLine());} SEMICOLLON;
+returnStatement returns [ReturnStmt stmt]:
+    {$stmt = new ReturnStmt();}
+    ret = RETURN
+    {$stmt.setLine($ret.getLine());}
+    (e = expression
+    {$stmt.setReturnedExpr($e.expr);}
+    | v = voidValue
+    {$stmt.setReturnedExpr($v.val);}
+    ) SEMICOLLON;
 
-returnStatement returns [ReturnStmt returnStmt]: ret = RETURN (expr = expression | void_ = voidValue) {if ($void_.text == null) {$returnStmt = new ReturnStmt($expr.expr);} else {$returnStmt = new ReturnStmt($void_.void_);} $returnStmt.setLine($ret.getLine());} SEMICOLLON;
+ifStatement returns [ConditionalStmt stmt] :
+    iff = IF cond = expression COLON then = conditionBody
+    {$stmt = new ConditionalStmt($cond.expr, $then.stmt);
+     $stmt.setLine($iff.getLine());}
+    (ELSE COLON elseSt = conditionBody
+    {$stmt.setElseBody($elseSt.stmt);}
+    )?;
 
-ifStatement returns [ConditionalStmt conditionalStmt]: if_ = IF expr = expression COLON body1 = conditionBody (else_ = ELSE COLON body2 = conditionBody)? {$conditionalStmt = new ConditionalStmt($expr.expr, $body1.bodyStatement); if ($else_.text != null) {$conditionalStmt.setElseBody($body2.bodyStatement);} $conditionalStmt.setLine($if_.getLine());};
+ifStatementWithReturn returns [ConditionalStmt stmt]:
+    iff = IF cond = expression COLON st1 = body
+    {$stmt = new ConditionalStmt($cond.expr, $st1.stmt);
+     $stmt.setLine($iff.getLine());}
+    ELSE COLON st2 = body
+    {$stmt.setElseBody($st2.stmt);}
+    ;
 
-ifStatementWithReturn returns [ConditionalStmt conditionalStmt]: if_ = IF expr = expression COLON body1 = body ELSE COLON body2 = body {$conditionalStmt = new ConditionalStmt($expr.expr, $body1.bodyStatement); $conditionalStmt.setElseBody($body2.bodyStatement); $conditionalStmt.setLine($if_.getLine());};
+printStatement returns [PrintStmt stmt]:
+    pr = PRINT LPAR e = expression
+    {$stmt = new PrintStmt($e.expr);
+     $stmt.setLine($pr.getLine());}
+    RPAR SEMICOLLON;
 
-printStatement returns [PrintStmt printStmt]: print = PRINT LPAR expr = expression {$printStmt = new PrintStmt($expr.expr); $printStmt.setLine($print.getLine());} RPAR SEMICOLLON;
+statement returns [Statement stmt]:
+    s1 = ifStatement
+    {$stmt = $s1.stmt;}
+    | s2 = printStatement
+    {$stmt = $s2.stmt;}
+    | s3 = functionCallStatement
+    {$stmt = $s3.stmt;}
+    | s4 = returnStatement
+    {$stmt = $s4.stmt;}
+    ;
 
-statement returns [Statement stmt]: (ifStmt = ifStatement {$stmt = $ifStmt.conditionalStmt;}) | (printStmt = printStatement {$stmt = $printStmt.printStmt;}) | (functionCallStmt = functionCallStatement {$stmt = $functionCallStmt.functionCallStmt;}) | (returnStmt = returnStatement {$stmt = $returnStmt.returnStmt;});
+singleStatement returns [Statement stmt]:
+    st1 = returnStatement
+    {$stmt = $st1.stmt;}
+    | st2 = ifStatementWithReturn
+    {$stmt = $st2.stmt;}
+    ;
 
-singleStatement returns [Statement bodyStatement]: (returnStmt = returnStatement {$bodyStatement = $returnStmt.returnStmt;}) | (conditionalStmt = ifStatementWithReturn {$bodyStatement = $conditionalStmt.conditionalStmt;});
+block returns [BlockStmt stmt]:
+    {$stmt = new BlockStmt();}
+    lb = LBRACE
+    {$stmt.setLine($lb.getLine());}
+    ((st1 = statement
+    {$stmt.addStatement($st1.stmt);}
+    )*
+    (st2 = returnStatement
+    {$stmt.addStatement($st2.stmt);}
+    | st3 = ifStatementWithReturn
+    {$stmt.addStatement($st3.stmt);}
+    ) (st4 = statement
+    {$stmt.addStatement($st4.stmt);}
+    )*) RBRACE;
 
-block returns [BlockStmt blockStmt]: lbrace = LBRACE {$blockStmt = new BlockStmt();} ((stmt1 = statement {$blockStmt.addStatement($stmt1.stmt);})* ((returnStmt = returnStatement {$blockStmt.addStatement($returnStmt.returnStmt);}) | (conditionalStmt = ifStatementWithReturn {$blockStmt.addStatement($conditionalStmt.conditionalStmt);})) (stmt2 = statement {$blockStmt.addStatement($stmt2.stmt);})*) {$blockStmt.setLine($lbrace.getLine());} RBRACE;
+conditionBody returns [Statement stmt]:
+    {BlockStmt blst = new BlockStmt();}
+    lb = LBRACE
+    {blst.setLine($lb.getLine());}
+    (st = statement
+    {blst.addStatement($st.stmt);}
+    )* RBRACE
+    {$stmt = blst;}
+    | st2 = statement
+    {$stmt = $st2.stmt;}
+    ;
 
-conditionBody returns [Statement bodyStatement]: {$bodyStatement = new BlockStmt();} (lbrace = LBRACE (stmt1 = statement {((BlockStmt)$bodyStatement).addStatement($stmt1.stmt);})* {$bodyStatement.setLine($lbrace.getLine());} RBRACE) |  (stmt2 = statement {$bodyStatement = ($stmt2.stmt);});
+expression returns [Expression expr]:
+    l = andExpression
+    {$expr = $l.expr;}
+    (op = OR r = andExpression
+    {$expr = new BinaryExpression($expr,$r.expr,BinaryOperator.or);
+     $expr.setLine($op.getLine());}
+    )*;
 
-expression returns [Expression expr]: e1 = andExpression {$expr = $e1.and;} (op = OR e2 = andExpression {$expr = new BinaryExpression($expr, $e2.and, BinaryOperator.or); $expr.setLine($op.getLine());})*;
+andExpression returns [Expression expr]:
+    l = equalityExpression
+    {$expr = $l.expr;}
+    (op = AND r = equalityExpression
+    {$expr = new BinaryExpression($expr,$r.expr,BinaryOperator.and);
+     $expr.setLine($op.getLine());}
+    )*;
 
-andExpression returns [Expression and]: e1 = equalityExpression {$and = $e1.eq;} (op = AND e2 = equalityExpression {$and = new BinaryExpression($and, $e2.eq, BinaryOperator.and); $and.setLine($op.getLine());})*;
+equalityExpression returns [Expression expr]
+    locals[BinaryOperator op, int line]:
+    l = relationalExpression
+    {$expr = $l.expr;}
+    ((op1 = EQUAL
+    {$op = BinaryOperator.eq;
+     $line = $op1.getLine();}
+    | op2 = NOT_EQUAL
+    {$op = BinaryOperator.neq;
+     $line = $op2.getLine();}
+    ) r = relationalExpression
+    {$expr = new BinaryExpression($expr,$r.expr,$op);
+     $expr.setLine($line);}
+    )*;
 
-equalityExpression returns [Expression eq]: e1 = relationalExpression {$eq = $e1.rel;} ((eqop = EQUAL e2 = relationalExpression {$eq = new BinaryExpression($eq, $e2.rel, BinaryOperator.eq); $eq.setLine($eqop.getLine());}) | (neqop = NOT_EQUAL e3 = relationalExpression {$eq = new BinaryExpression($eq, $e3.rel, BinaryOperator.neq); $eq.setLine($neqop.getLine());}))*;
+relationalExpression returns [Expression expr]
+    locals [BinaryOperator op, int line]:
+    l = additiveExpression
+    {$expr = $l.expr;}
+    ((op1 = GREATER_THAN
+    {$op = BinaryOperator.gt;
+    $line = $op1.getLine();}
+    | op2 = LESS_THAN
+    {$op = BinaryOperator.lt;
+     $line = $op2.getLine();}
+    ) r = additiveExpression
+    {$expr = new BinaryExpression($expr,$r.expr,$op);
+     $expr.setLine($line);}
+    )*;
 
-relationalExpression returns [Expression rel]: e1 = additiveExpression {$rel = $e1.add;} ((gop = GREATER_THAN e2 = additiveExpression {$rel = new BinaryExpression($rel, $e2.add, BinaryOperator.gt); $rel.setLine($gop.getLine());}) | (lop = LESS_THAN e3 = additiveExpression {$rel = new BinaryExpression($rel, $e3.add, BinaryOperator.lt); $rel.setLine($lop.getLine());}))*;
+additiveExpression returns [Expression expr]
+    locals [BinaryOperator op, int line]:
+    l = multiplicativeExpression
+    {$expr = $l.expr;}
+    ((op1 = PLUS
+    {$op = BinaryOperator.add;
+     $line = $op1.getLine();}
+    | op2 = MINUS
+    {$op = BinaryOperator.sub;
+     $line = $op2.getLine();}
 
-additiveExpression returns [Expression add]: e1 = multiplicativeExpression {$add = $e1.mult;} ((pop = PLUS e2 = multiplicativeExpression {$add = new BinaryExpression($add, $e2.mult, BinaryOperator.add); $add.setLine($pop.getLine());}) | (mop = MINUS e3 = multiplicativeExpression {$add = new BinaryExpression($add, $e3.mult, BinaryOperator.sub); $add.setLine($mop.getLine());}))*;
+    ) r = multiplicativeExpression
+    {$expr = new BinaryExpression($expr,$r.expr,$op);
+     $expr.setLine($line);}
+    )*;
 
-multiplicativeExpression returns [Expression mult]: e1 = preUnaryExpression {$mult = $e1.pre;} ((multop = MULT e2 = preUnaryExpression {$mult = new BinaryExpression($mult, $e2.pre, BinaryOperator.mult); $mult.setLine($multop.getLine());}) | (dop = DIVIDE e3 = preUnaryExpression {$mult = new BinaryExpression($mult, $e3.pre, BinaryOperator.div); $mult.setLine($dop.getLine());}))*;
+multiplicativeExpression returns [Expression expr]
+    locals [BinaryOperator op, int line]:
+    l = preUnaryExpression
+    {$expr = $l.expr;}
+    ((op1 = MULT
+    {$op = BinaryOperator.mult;
+     $line = $op1.getLine();}
+    | op2 = DIVIDE
+    {$op = BinaryOperator.div;
+     $line = $op2.getLine();}
+    ) r = preUnaryExpression
+    {$expr = new BinaryExpression($expr,$r.expr,$op);
+    $expr.setLine($line);}
+    )*;
 
-preUnaryExpression returns [Expression pre, UnaryOperator operator]: ((nop = NOT {$operator = UnaryOperator.not;} | mop = MINUS {$operator = UnaryOperator.minus;}) e = preUnaryExpression) {$pre = new UnaryExpression($e.pre, $operator); if ($operator == UnaryOperator.not) $pre.setLine($nop.getLine()); if ($operator == UnaryOperator.minus) $pre.setLine($mop.getLine());} | e2 = appendExpression {$pre = $e2.app;};
+preUnaryExpression returns [Expression expr]
+    locals[UnaryOperator op, int line]:
+    ((op1 = NOT
+    {$op = UnaryOperator.not;
+     $line = $op1.getLine();}
+    | op2 = MINUS
+    {$op = UnaryOperator.minus;
+     $line = $op2.getLine();}
+    ) pre = preUnaryExpression
+    {$expr = new UnaryExpression($pre.expr, $op);
+     $expr.setLine($line);}
+    ) | ap = appendExpression
+    {$expr = $ap.expr;}
+    ;
 
-appendExpression returns [Expression app]: e1 = accessExpression {$app = $e1.acc;} (aop = APPEND e2 = accessExpression {$app = new BinaryExpression($app, $e2.acc, BinaryOperator.append); $app.setLine($aop.getLine());})*;
+appendExpression returns [Expression expr]:
+    l = accessExpression
+    {$expr = $l.expr;}
+    (op = APPEND r = accessExpression
+    {$expr = new BinaryExpression($expr,$r.expr,BinaryOperator.append);
+     $expr.setLine($op.getLine());}
+    )*;
 
-accessExpression returns [Expression acc]: e1 = otherExpression {$acc = $e1.other;} (lpar = LPAR fArgs = functionArguments RPAR {$acc = new FunctionCall($acc, $fArgs.args, $fArgs.argsWithKey); $acc.setLine($lpar.getLine());})* (lbrac = LBRACK e2 = expression {$acc = new ListAccessByIndex($acc, $e2.expr); $acc.setLine($lbrac.getLine());} RBRACK)* (se = sizeExpression {$acc = new ListSize($acc); $acc.setLine($se.dot.getLine());})*;
+accessExpression returns [Expression expr] :
+    other = otherExpression
+    {$expr = $other.expr;}
+    (par = LPAR f = functionArguments
+     {FunctionCall fcall = new FunctionCall($expr, $f.funcArgRet, $f.funcArgWithKeyRet);
+     fcall.setLine($par.getLine());
+     $expr = fcall;}
+     RPAR)*  (lb = LBRACK e = expression
+     {ListAccessByIndex ac = new ListAccessByIndex($expr,$e.expr);
+      ac.setLine($lb.getLine());
+      $expr = ac;}
+     RBRACK)* (se = sizeExpression
+     {ListSize ls = new ListSize($expr);
+      ls.setLine($se.line);
+      $expr = ls;}
+     )*;
 
-otherExpression returns [Expression other]: v = values {$other = $v.value;} | id = identifier {$other = $id.id;} | ano = anonymousFunction {$other = $ano.ano;} | LPAR (expr = expression {$other = $expr.expr;}) RPAR;
+otherExpression returns [Expression expr]:
+    v = values
+    {$expr = $v.val;}
+    | id = identifier
+    {$expr = $id.idRet;}
+    | afunc = anonymousFunction
+    {$expr = $afunc.expr;}
+    | LPAR e = expression
+    {$expr = $e.expr;}
+    RPAR;
 
-anonymousFunction returns [AnonymousFunction ano]: funcDec = functionArgumentsDeclaration ARROW bodyStmt = block {$ano = new AnonymousFunction($funcDec.args); $ano.setBody($bodyStmt.blockStmt); $ano.setLine($funcDec.lpar.getLine());};
+anonymousFunction returns [AnonymousFunction expr]:
+    args = functionArgumentsDeclaration
+    {$expr = new AnonymousFunction($args.argsRet);
+     $expr.setLine($args.line);}
+    ARROW b = block
+    {$expr.setBody($b.stmt);}
+    ;
 
-sizeExpression returns [Token dot]: d = DOT {$dot = $d;} SIZE;
+sizeExpression returns [int line]:
+    d = DOT
+    {$line = $d.getLine();}
+    SIZE;
 
-values returns [Value value]: bool = boolValue {$value = $bool.bool;} | str = STRING_VALUE {$value = new StringValue($str.text); $value.setLine($str.getLine());} | int_ = INT_VALUE {$value = new IntValue($int_.int); $value.setLine($int_.getLine());} | list = listValue {$value = $list.list;};
+values returns [Value val]:
+    bv = boolValue
+    {$val = $bv.val;}
+    | str = STRING_VALUE
+    {$val = new StringValue($str.text.replaceAll("^\"|\"$", ""));
+     $val.setLine($str.getLine());}
+    | iv = INT_VALUE
+    {$val = new IntValue($iv.int);
+     $val.setLine($iv.getLine());}
+    | lv = listValue
+    {$val = $lv.val;}
+    ;
 
-listValue returns [ListValue list]: lbrac = LBRACK serial = splitedExpressionsWithComma {$list = new ListValue($serial.args); $list.setLine($lbrac.getLine());} RBRACK;
+listValue returns [ListValue val]:
+    lb = LBRACK sp = splitedExpressionsWithComma
+    {$val = new ListValue($sp.arguments);
+     $val.setLine($lb.getLine());}
+    RBRACK;
 
-boolValue returns [BoolValue bool]: true_ = TRUE {$bool = new BoolValue(true); $bool.setLine($true_.getLine());} | false_ = FALSE {$bool = new BoolValue(false); $bool.setLine($false_.getLine());};
+boolValue returns [Value val]:
+    t = TRUE
+    {$val = new BoolValue(true);
+     $val.setLine($t.getLine());}
+    | f = FALSE
+    {$val = new BoolValue(false);
+     $val.setLine($f.getLine());}
+    ;
 
-voidValue returns [VoidValue void_]: v = VOID {$void_ = new VoidValue(); $void_.setLine($v.getLine());};
+voidValue returns [Value val]:
+    v = VOID
+    {$val = new VoidValue();
+    $val.setLine($v.getLine());}
+    ;
 
-identifier returns [Identifier id]: name = IDENTIFIER {$id = new Identifier($name.text); $id.setLine($name.getLine());};
-
+identifier returns [Identifier idRet]:
+    id = IDENTIFIER
+    {$idRet = new Identifier($id.text);
+     $idRet.setLine($id.getLine());};
 
 FUNC: 'func';
 MAIN: 'main';
