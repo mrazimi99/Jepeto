@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class Stack<T> {
     private int top;
-    private final ArrayList<T> elements;
+    private ArrayList<T> elements;
 
     public Stack() {
         top = -1;

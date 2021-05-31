@@ -1,19 +1,20 @@
- main :  f(b = "str", a = true);
+main : f1(a = 2, b = "string");
 
-func f(a, b) : {
-    g(a, b);
-    if (a) :
-        return void;
-    else :
-        return a and b;
+
+func f1(b, a, c) : {
+    print(a + b);
+    if (c) :
+        return a * b / b;
+    f2(a::b::(c or ~c)::a.size);
+    return a;
 }
 
-func g(arg1, arg2) : {
-    print(f(arg1 + arg2 * arg1, "str2"));
-    return arg1;
-}
+func f2() :
+    return (a, b) -> {return a + b / a or b;};
 
-
-func noVisit(a, b) : {
-    return 1 + true;
+func f3(arg1, arg2) : {
+    print("Hello");
+    return 2 * arg1;
+    print(true);
+    print(arg2[arg1 or arg2]);
 }

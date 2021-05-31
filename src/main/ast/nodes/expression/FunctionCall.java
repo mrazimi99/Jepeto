@@ -1,7 +1,10 @@
 package main.ast.nodes.expression;
 
 import main.visitor.IVisitor;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 //line -> LPAR before arguments
 public class FunctionCall extends Expression {
@@ -24,6 +27,7 @@ public class FunctionCall extends Expression {
     public Expression getInstance() {
         return instance;
     }
+
     public void setInstance(Expression instance) {
         this.instance = instance;
     }
@@ -31,6 +35,7 @@ public class FunctionCall extends Expression {
     public ArrayList<Expression> getArgs() {
         return args;
     }
+
     public void setArgs(ArrayList<Expression> args) {
         this.args = args;
     }
@@ -38,13 +43,15 @@ public class FunctionCall extends Expression {
     public void addArg(Expression arg) {
         this.args.add(arg);
     }
-
     public Map<Identifier, Expression> getArgsWithKey() {
         return argsWithKey;
     }
+
     public void setArgsWithKey(Map<Identifier, Expression> argsWithKey) {
         this.argsWithKey = argsWithKey;
     }
+
+
 
 
     @Override

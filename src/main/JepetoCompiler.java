@@ -1,34 +1,27 @@
 package main;
 
 import main.ast.nodes.Program;
-import main.visitor.*;
+import main.visitor.ASTTreePrinter;
+import main.visitor.ProgramAnalyzer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import parsers.*;
 
 public class JepetoCompiler {
-
     public void compile(CharStream textStream) {
         JepetoLexer jepetoLexer = new JepetoLexer(textStream);
         CommonTokenStream tokenStream = new CommonTokenStream(jepetoLexer);
-
         JepetoParser jepetoParser = new JepetoParser(tokenStream);
         Program program = jepetoParser.jepeto().jepetoProgram;
-        ErrorReporter errorReporter = new ErrorReporter();
+
         ASTTreePrinter astTreePrinter = new ASTTreePrinter();
 
-        NameAnalyser nameAnalyser = new NameAnalyser();
-        program.accept(nameAnalyser);
+        ProgramAnalyzer programAnalyzer = new ProgramAnalyzer();
+        programAnalyzer.visit(program);
 
-        int numberOfErrors = program.accept(errorReporter);
+        if (programAnalyzer.getNumberOfErrors() == 0)
+            astTreePrinter.visit(program);
 
-        if(numberOfErrors > 0)
-            System.exit(1);
-
-        //program.accept(astTreePrinter);   //Not used anymore in phase 3
-
-        //TODO
-
-        System.out.println("Compilation successful");
     }
+
 }

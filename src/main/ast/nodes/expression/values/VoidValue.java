@@ -2,6 +2,7 @@ package main.ast.nodes.expression.values;
 
 import main.visitor.IVisitor;
 
+//line -> VOID
 public class VoidValue extends Value{
     public VoidValue() {}
     @Override

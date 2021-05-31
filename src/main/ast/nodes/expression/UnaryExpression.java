@@ -16,6 +16,7 @@ public class UnaryExpression extends Expression{
     public Expression getOperand() {
         return operand;
     }
+
     public void setOperand(Expression operand) {
         this.operand = operand;
     }
@@ -23,6 +24,7 @@ public class UnaryExpression extends Expression{
     public UnaryOperator getOperator() {
         return operator;
     }
+
     public void setOperator(UnaryOperator operator) {
         this.operator = operator;
     }

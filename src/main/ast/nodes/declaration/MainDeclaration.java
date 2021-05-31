@@ -1,10 +1,13 @@
 package main.ast.nodes.declaration;
 
+
 import main.ast.nodes.statement.Statement;
 import main.visitor.IVisitor;
 
-//MAIN
+
+//line -> MAIN
 public class MainDeclaration extends Declaration{
+
     protected Statement body;
 
     public Statement getBody() {
