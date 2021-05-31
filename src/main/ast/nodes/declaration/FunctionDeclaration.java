@@ -1,11 +1,9 @@
 package main.ast.nodes.declaration;
 
-
 import main.ast.nodes.expression.Identifier;
 import main.ast.nodes.statement.Statement;
 import main.visitor.IVisitor;
-import java.util.ArrayList;
-
+import java.util.*;
 
 //line -> FUNC
 public class FunctionDeclaration extends Declaration {

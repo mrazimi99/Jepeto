@@ -14,7 +14,6 @@ public class PrintStmt extends Statement{
     public Expression getArg() {
         return arg;
     }
-
     public void setArg(Expression arg) {
         this.arg = arg;
     }

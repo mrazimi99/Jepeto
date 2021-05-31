@@ -1,19 +1,12 @@
 package main.visitor;
 
-import main.ast.nodes.Program;
-import main.ast.nodes.declaration.FunctionDeclaration;
-import main.ast.nodes.declaration.MainDeclaration;
+import main.ast.nodes.*;
+import main.ast.nodes.declaration.*;
 import main.ast.nodes.expression.*;
-import main.ast.nodes.expression.values.ListValue;
-import main.ast.nodes.expression.values.VoidValue;
-import main.ast.nodes.expression.values.primitive.BoolValue;
-import main.ast.nodes.expression.values.primitive.IntValue;
-import main.ast.nodes.expression.values.primitive.StringValue;
+import main.ast.nodes.expression.values.*;
+import main.ast.nodes.expression.values.primitive.*;
 import main.ast.nodes.statement.*;
-
-import java.util.ArrayList;
-import java.util.Map;
-
+import java.util.*;
 
 public class ASTTreePrinter extends Visitor<Void> {
 
@@ -25,10 +18,8 @@ public class ASTTreePrinter extends Visitor<Void> {
     public Void visit(Program program) {
         messagePrinter(program.getLine(), program.toString());
         program.getMain().accept(this);
-
-        for (FunctionDeclaration functionDeclaration : program.getFunctions())
-            functionDeclaration.accept(this);
-
+        for (FunctionDeclaration funcDec: program.getFunctions())
+            funcDec.accept(this);
         return null;
     }
 
@@ -36,12 +27,11 @@ public class ASTTreePrinter extends Visitor<Void> {
     public Void visit(FunctionDeclaration funcDeclaration) {
         messagePrinter(funcDeclaration.getLine(), funcDeclaration.toString());
         funcDeclaration.getFunctionName().accept(this);
-
-        for (Identifier identifier : funcDeclaration.getArgs())
-            identifier.accept(this);
-
+        for (Identifier arg: funcDeclaration.getArgs())
+            arg.accept(this);
         funcDeclaration.getBody().accept(this);
         return null;
+
     }
 
     @Override
@@ -49,28 +39,28 @@ public class ASTTreePrinter extends Visitor<Void> {
         messagePrinter(mainDeclaration.getLine(), mainDeclaration.toString());
         mainDeclaration.getBody().accept(this);
         return null;
+
     }
 
 
     @Override
     public Void visit(BlockStmt blockStmt) {
         messagePrinter(blockStmt.getLine(), blockStmt.toString());
+        for (Statement stmt: blockStmt.getStatements())
+            stmt.accept(this);
 
-        for (Statement statement : blockStmt.getStatements())
-            statement.accept(this);
         return null;
     }
 
     @Override
     public Void visit(ConditionalStmt conditionalStmt) {
         messagePrinter(conditionalStmt.getLine(), conditionalStmt.toString());
-
         conditionalStmt.getCondition().accept(this);
         conditionalStmt.getThenBody().accept(this);
 
-        if (conditionalStmt.getElseBody() != null)
+        if(conditionalStmt.getElseBody() != null) {
             conditionalStmt.getElseBody().accept(this);
-
+        }
         return null;
     }
 
@@ -113,10 +103,8 @@ public class ASTTreePrinter extends Visitor<Void> {
     @Override
     public Void visit(AnonymousFunction anonymousFunction) {
         messagePrinter(anonymousFunction.getLine(), anonymousFunction.toString());
-
-        for (Identifier arg : anonymousFunction.getArgs())
+        for (Identifier arg: anonymousFunction.getArgs())
             arg.accept(this);
-
         anonymousFunction.getBody().accept(this);
         return null;
     }
@@ -146,29 +134,21 @@ public class ASTTreePrinter extends Visitor<Void> {
     public Void visit(FunctionCall funcCall) {
         messagePrinter(funcCall.getLine(), funcCall.toString());
         funcCall.getInstance().accept(this);
+        for (Expression args: funcCall.getArgs())
+            args.accept(this);
+        for (Map.Entry<Identifier,Expression> argsWithKey: funcCall.getArgsWithKey().entrySet()){
+            argsWithKey.getKey().accept(this);
+            argsWithKey.getValue().accept(this);
 
-        if (funcCall.getArgs() != null)
-            for (Expression expression : funcCall.getArgs())
-                expression.accept(this);
-
-        if (funcCall.getArgsWithKey() != null) {
-            ArrayList<Identifier> keySet = new ArrayList<>(funcCall.getArgsWithKey().keySet());
-            ArrayList<Expression> expressions = new ArrayList<>(funcCall.getArgsWithKey().values());
-            for (int i = 0; i < keySet.size(); i++) {
-                keySet.get(i).accept(this);
-                expressions.get(i).accept(this);
-            }
         }
-
         return null;
     }
 
     @Override
     public Void visit(ListValue listValue) {
         messagePrinter(listValue.getLine(), listValue.toString());
-
-        for (Expression expression : listValue.getElements())
-            expression.accept(this);
+        for (Expression element : listValue.getElements())
+            element.accept(this);
         return null;
     }
 
@@ -186,7 +166,7 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(StringValue stringValue) {
-        messagePrinter(stringValue.getLine(), stringValue.toString().replace("\"", ""));
+        messagePrinter(stringValue.getLine(), stringValue.toString());
         return null;
     }
 
@@ -195,5 +175,4 @@ public class ASTTreePrinter extends Visitor<Void> {
         messagePrinter(voidValue.getLine(), voidValue.toString());
         return null;
     }
-
 }

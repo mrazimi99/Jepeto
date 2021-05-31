@@ -15,7 +15,6 @@ public class ListAccessByIndex extends Expression {
     public Expression getInstance() {
         return instance;
     }
-
     public void setInstance(Expression instance) {
         this.instance = instance;
     }
@@ -23,7 +22,6 @@ public class ListAccessByIndex extends Expression {
     public Expression getIndex() {
         return index;
     }
-
     public void setIndex(Expression index) {
         this.index = index;
     }

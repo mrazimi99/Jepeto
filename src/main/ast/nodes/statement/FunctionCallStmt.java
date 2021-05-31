@@ -14,7 +14,6 @@ public class FunctionCallStmt extends Statement{
     public FunctionCall getFunctionCall() {
         return funcCall;
     }
-
     public void setFunctionCall(FunctionCall methodCall) {
         this.funcCall = methodCall;
     }
