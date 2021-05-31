@@ -1,7 +1,5 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="sample1" type="Application" factoryName="Application">
-    <option name="ALTERNATIVE_JRE_PATH" value="15" />
-    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="main.Jepeto" />
     <module name="Jepeto_Phase3" />
     <option name="PROGRAM_PARAMETERS" value="samples/sample1.jp" />
