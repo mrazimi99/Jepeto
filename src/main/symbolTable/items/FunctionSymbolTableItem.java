@@ -11,6 +11,7 @@ public class FunctionSymbolTableItem extends SymbolTableItem {
     private FunctionDeclaration funcDeclaration;
     private final ArrayList<Type> argTypes;
     private Type returnType;
+    private boolean typeSet;
 
     public FunctionSymbolTableItem(FunctionDeclaration funcDeclaration) {
         this.funcDeclaration = funcDeclaration;
@@ -55,5 +56,13 @@ public class FunctionSymbolTableItem extends SymbolTableItem {
     @Override
     public String getKey() {
         return START_KEY + this.name;
+    }
+
+    public void setTypeSet() {
+        typeSet = true;
+    }
+
+    public boolean getTypeSet() {
+        return typeSet;
     }
 }

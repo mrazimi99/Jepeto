@@ -1,6 +1,5 @@
 package main.visitor;
 
-import main.ast.nodes.declaration.*;
 import main.ast.nodes.expression.*;
 import main.ast.nodes.expression.operators.BinaryOperator;
 import main.ast.nodes.expression.operators.UnaryOperator;
@@ -15,8 +14,37 @@ import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TypeInference extends Visitor<Type> {
+	private boolean areFirstsSubTypeOfSeconds(ArrayList<Type> first, ArrayList<Type> second) {
+		if(first.size() != second.size())
+			return false;
+
+		for(int i = 0; i < first.size(); i++) {
+			if(!isFirstSubTypeOfSecond(first.get(i), second.get(i)))
+				return false;
+		}
+
+		return true;
+	}
+
+	private boolean isFirstSubTypeOfSecond(Type first, Type second) {
+		if(first instanceof NoType)
+			return true;
+
+		if(first instanceof IntType || first instanceof BoolType || first instanceof StringType)
+			return first.toString().equals(second.toString());
+
+		if (first instanceof VoidType)
+			return second instanceof FptrType;
+
+		if(first instanceof ListType)
+			return (second instanceof List) && (((ListType) first).getType().getClass().equals(((ListType) second).getType().getClass()));
+
+		return true;
+	}
+
 	@Override
 	public Type visit(BinaryExpression binaryExpression) {
 		Expression left = binaryExpression.getFirstOperand();
@@ -58,11 +86,12 @@ public class TypeInference extends Visitor<Type> {
 				if (tr instanceof NoType)
 					return new NoType();
 
-				if (tr.getClass().equals(((ListType)tl).getType()))
-					return new ListType(((ListType)tl).getType());
+				ListType listType = (ListType) tl;
+				if (listType.getType() == null)
+					listType.setType(tr);
 
-				if (tr instanceof FptrType && tl instanceof VoidType)
-					return new ListType(((ListType)tl).getType());
+				if (tr.getClass().equals(listType.getType()))
+					return new ListType(listType.getType());
 			}
 			else if (tl instanceof NoType) {
 				return new NoType();
@@ -76,67 +105,181 @@ public class TypeInference extends Visitor<Type> {
 
 	@Override
 	public Type visit(UnaryExpression unaryExpression) {
-		//TODO
-		return null;
+		Expression left = unaryExpression.getOperand();
+
+		Type type = left.accept(this);
+		UnaryOperator operator =  unaryExpression.getOperator();
+
+		if (operator.equals(UnaryOperator.not)) {
+			if (type instanceof BoolType)
+				return new BoolType();
+
+			if (type instanceof NoType)
+				return new NoType();
+		}
+		else if (operator.equals(UnaryOperator.minus)) {
+			if (type instanceof IntType)
+				return new IntType();
+
+			if (type instanceof NoType)
+				return new NoType();
+		}
+
+		UnsupportedOperandType error = new UnsupportedOperandType(unaryExpression.getLine(), operator.name());
+		unaryExpression.addError(error);
+		return new NoType();
 	}
 
 	@Override
 	public Type visit(AnonymousFunction anonymousFunction) {
-		//TODO
-		return null;
+		anonymousFunction.getArgs().forEach(identifier -> identifier.accept(this));
+		anonymousFunction.getBody().accept(this);
+		return new FptrType(anonymousFunction.getName());
 	}
 
 	@Override
 	public Type visit(Identifier identifier) {
-		//TODO
-		return null;
+		try {
+			VariableSymbolTableItem variableSymbolTableItem = (VariableSymbolTableItem) SymbolTable.top.getItem(VariableSymbolTableItem.START_KEY + identifier.getName());
+			return variableSymbolTableItem.getType();
+		} catch (ItemNotFoundException e) {
+			return new FptrType(identifier.getName());
+		}
 	}
 
 	@Override
 	public Type visit(ListAccessByIndex listAccessByIndex) {
-		//TODO
-		return null;
+		Type instanceType = listAccessByIndex.getInstance().accept(this);
+		Type indexType = listAccessByIndex.getIndex().accept(this);
+		if (instanceType instanceof ListType) {
+			if (indexType instanceof IntType) {
+				return ((ListType)instanceType).getType();
+			}
+			else if (!(indexType instanceof NoType)) {
+				ListIndexNotInt error = new ListIndexNotInt(listAccessByIndex.getLine());
+				listAccessByIndex.addError(error);
+			}
+		}
+		else if(!(instanceType instanceof NoType)) {
+			ListAccessByIndexOnNoneList error = new ListAccessByIndexOnNoneList(listAccessByIndex.getLine());
+			listAccessByIndex.addError(error);
+		}
+
+		return new NoType();
 	}
 
 	@Override
 	public Type visit(ListSize listSize) {
-		//TODO
-		return null;
+		Type instanceType = listSize.getInstance().accept(this);
+		if (instanceType instanceof ListType) {
+			return ((ListType)instanceType).getType();
+		}
+		else if(!(instanceType instanceof NoType)) {
+			GetSizeOfNoneList error = new GetSizeOfNoneList(listSize.getLine());
+			listSize.addError(error);
+		}
+
+		return new NoType();
 	}
 
 	@Override
 	public Type visit(FunctionCall funcCall) {
-		//TODO
-		return null;
+		Type instanceType = funcCall.getInstance().accept(this);
+
+		if (instanceType instanceof NoType)
+			return new NoType();
+
+		String funcName;
+		if (instanceType instanceof FptrType) {
+			funcName = ((FptrType) instanceType).getFunctionName();
+		}
+		else {
+			CallOnNoneFptrType error = new CallOnNoneFptrType(funcCall.getLine());
+			funcCall.addError(error);
+			return new NoType();
+		}
+
+		FunctionSymbolTableItem functionSymbolTableItem;
+		try {
+			functionSymbolTableItem = (FunctionSymbolTableItem) SymbolTable.root.getItem(FunctionSymbolTableItem.START_KEY + funcName);
+			boolean typesMatch = true;
+
+			if (!functionSymbolTableItem.getTypeSet()) {
+				if (!funcCall.getArgs().isEmpty())
+					funcCall.getArgs().forEach(expression -> functionSymbolTableItem.addArgType(expression.accept(this)));
+				else if (!funcCall.getArgsWithKey().isEmpty())
+					functionSymbolTableItem.getFuncDeclaration().getArgs().forEach(identifier -> functionSymbolTableItem.addArgType(funcCall.getArgsWithKey().get(identifier).accept(this)));
+
+				functionSymbolTableItem.setTypeSet();
+			}
+			else {
+				if (!funcCall.getArgs().isEmpty())
+					typesMatch = areFirstsSubTypeOfSeconds(funcCall.getArgs().stream().map(expression -> expression.accept(this)).collect(Collectors.toCollection(ArrayList::new)), functionSymbolTableItem.getArgTypes());
+				else if (!funcCall.getArgsWithKey().isEmpty())
+					typesMatch = areFirstsSubTypeOfSeconds(functionSymbolTableItem.getFuncDeclaration().getArgs().stream().map(identifier -> funcCall.getArgsWithKey().get(identifier).accept(this)).collect(Collectors.toCollection(ArrayList::new)), functionSymbolTableItem.getArgTypes());
+			}
+
+			if ((funcCall.getArgs().isEmpty() && funcCall.getArgsWithKey().isEmpty() && !functionSymbolTableItem.getFuncDeclaration().getArgs().isEmpty())
+					|| ((!funcCall.getArgs().isEmpty() || !funcCall.getArgsWithKey().isEmpty()) && functionSymbolTableItem.getFuncDeclaration().getArgs().isEmpty())
+					|| !typesMatch) {
+				FunctionCallNotMatchDefinition error = new FunctionCallNotMatchDefinition(funcCall.getLine());
+				funcCall.addError(error);
+				return new NoType();
+			}
+
+			return functionSymbolTableItem.getReturnType();
+		} catch (ItemNotFoundException e) {
+			// Unreachable.
+			e.printStackTrace();
+		}
+
+		return new NoType();
 	}
 
 	@Override
 	public Type visit(ListValue listValue) {
-		//TODO
-		return null;
+		ArrayList<Expression> elements = listValue.getElements();
+
+		if (elements.isEmpty())
+			return new ListType(null);
+
+		Type firstType = elements.get(0).accept(this);
+		if (firstType instanceof NoType)
+			return new NoType();
+
+		for (int i = 1; i < elements.size(); i++) {
+			Type elementType = elements.get(i).accept(this);
+
+			if (elementType instanceof NoType)
+				return new NoType();
+
+			if (!(isFirstSubTypeOfSecond(firstType, elementType) && isFirstSubTypeOfSecond(elementType, firstType))) {
+				ListElementsTypeNotMatch error = new ListElementsTypeNotMatch(listValue.getLine());
+				listValue.addError(error);
+				return new NoType();
+			}
+		}
+
+		return new ListType(firstType);
 	}
 
 	@Override
 	public Type visit(IntValue intValue) {
-		//TODO
-		return null;
+		return new IntType();
 	}
 
 	@Override
 	public Type visit(BoolValue boolValue) {
-		//TODO
-		return null;
+		return new BoolType();
 	}
 
 	@Override
 	public Type visit(StringValue stringValue) {
-		//TODO
-		return null;
+		return new StringType();
 	}
 
 	@Override
 	public Type visit(VoidValue voidValue) {
-		//TODO
-		return null;
+		return new VoidType();
 	}
 }
