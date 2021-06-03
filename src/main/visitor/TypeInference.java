@@ -1,5 +1,6 @@
 package main.visitor;
 
+import main.ast.nodes.declaration.FunctionDeclaration;
 import main.ast.nodes.expression.*;
 import main.ast.nodes.expression.operators.BinaryOperator;
 import main.ast.nodes.expression.operators.UnaryOperator;
@@ -140,7 +141,22 @@ public class TypeInference extends Visitor<Type> {
 	@Override
 	public Type visit(Identifier identifier) {
 		try {
-			VariableSymbolTableItem variableSymbolTableItem = (VariableSymbolTableItem) SymbolTable.top.getItem(VariableSymbolTableItem.START_KEY + identifier.getName());
+			FunctionDeclaration currentFunctionDeclaration = TypeSetter.lastFuncDeclaration;
+			if (currentFunctionDeclaration == null)
+				throw new ItemNotFoundException();
+			FunctionSymbolTableItem functionSymbolTableItem = (FunctionSymbolTableItem) SymbolTable.root.getItem(FunctionSymbolTableItem.START_KEY + currentFunctionDeclaration.getFunctionName().getName());
+			VariableSymbolTableItem variableSymbolTableItem = (VariableSymbolTableItem) functionSymbolTableItem.getFunctionSymbolTable().getItem(VariableSymbolTableItem.START_KEY + identifier.getName());
+			int thisIdIndex = -1;
+			ArrayList<Identifier> args = currentFunctionDeclaration.getArgs();
+
+			for (int i = 0; i < args.size(); i++) {
+				if (args.get(i).getName() == variableSymbolTableItem.getName()) {
+					thisIdIndex = i;
+					break;
+				}
+			}
+			System.out.println(currentFunctionDeclaration.getFunctionName());
+			variableSymbolTableItem.setType(functionSymbolTableItem.getArgTypes().get(thisIdIndex));
 			return variableSymbolTableItem.getType();
 		} catch (ItemNotFoundException e) {
 			return new FptrType(identifier.getName());
@@ -210,6 +226,8 @@ public class TypeInference extends Visitor<Type> {
 				else if (!funcCall.getArgsWithKey().isEmpty())
 					functionSymbolTableItem.getFuncDeclaration().getArgs().forEach(identifier -> functionSymbolTableItem.addArgType(funcCall.getArgsWithKey().get(identifier).accept(this)));
 
+				System.out.println(functionSymbolTableItem.getArgTypes());
+				System.out.println(funcName);
 				functionSymbolTableItem.setTypeSet();
 			}
 			else {

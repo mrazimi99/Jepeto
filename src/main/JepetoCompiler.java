@@ -15,20 +15,20 @@ public class JepetoCompiler {
         JepetoParser jepetoParser = new JepetoParser(tokenStream);
         Program program = jepetoParser.jepeto().jepetoProgram;
         ErrorReporter errorReporter = new ErrorReporter();
-        ASTTreePrinter astTreePrinter = new ASTTreePrinter();
-
         NameAnalyser nameAnalyser = new NameAnalyser();
         program.accept(nameAnalyser);
-
         int numberOfErrors = program.accept(errorReporter);
 
         if(numberOfErrors > 0)
             System.exit(1);
 
-        //program.accept(astTreePrinter);   //Not used anymore in phase 3
+        TypeSetter typeSetter = new TypeSetter();
+        program.accept(typeSetter);
+        numberOfErrors = program.accept(errorReporter);
 
-        //TODO
-
-        System.out.println("Compilation successful");
+        if(numberOfErrors > 0)
+            System.exit(1);
+        else
+            System.out.println("Compilation successful");
     }
 }

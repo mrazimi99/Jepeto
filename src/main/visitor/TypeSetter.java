@@ -9,6 +9,8 @@ import main.ast.nodes.statement.*;
 import main.ast.types.*;
 import main.ast.types.functionPointer.FptrType;
 import main.ast.types.single.BoolType;
+import main.ast.types.single.IntType;
+import main.ast.types.single.StringType;
 import main.compileErrors.typeErrors.ConditionNotBool;
 import main.compileErrors.typeErrors.ReturnValueNotMatchFunctionReturnType;
 import main.compileErrors.typeErrors.UnsupportedTypeForPrint;
@@ -18,51 +20,74 @@ import main.symbolTable.items.*;
 import java.util.*;
 
 public class TypeSetter  extends Visitor<Void> {
+    public static FunctionDeclaration lastFuncDeclaration;
+    private final TypeInference typeInference = new TypeInference();
+
     @Override
     public Void visit(Program program) {
-        //TODO
+        program.getMain().accept(this);
+        program.getFunctions().forEach(functionDeclaration -> functionDeclaration.accept(this));
         return null;
     }
 
     @Override
     public Void visit(FunctionDeclaration funcDeclaration) {
-        //TODO
+        lastFuncDeclaration = funcDeclaration;
+        funcDeclaration.getArgs().forEach(identifier -> identifier.accept(typeInference));
+        funcDeclaration.getBody().accept(this);
         return null;
     }
 
     @Override
     public Void visit(MainDeclaration mainDeclaration) {
-        //TODO
+        mainDeclaration.getBody().accept(this);
         return null;
     }
 
     @Override
     public Void visit(BlockStmt blockStmt) {
-        //TODO
+        blockStmt.getStatements().forEach(statement -> statement.accept(this));
         return null;
     }
 
     @Override
     public Void visit(ConditionalStmt conditionalStmt) {
-        //TODO
+        conditionalStmt.getCondition().accept(this);
+        conditionalStmt.getThenBody().accept(this);
+
+        if(conditionalStmt.getElseBody() != null) {
+            conditionalStmt.getElseBody().accept(this);
+        }
+
         return null;
     }
 
     @Override
     public Void visit(FunctionCallStmt funcCallStmt) {
-        //TODO
+        funcCallStmt.getFunctionCall().accept(typeInference);
         return null;
     }
 
     @Override
     public Void visit(PrintStmt print) {
-        //TODO
+        Type argType = print.getArg().accept(typeInference);
+
+        if(!(argType instanceof IntType || argType instanceof StringType || argType instanceof BoolType || argType instanceof NoType)) {
+            UnsupportedTypeForPrint error = new UnsupportedTypeForPrint(print.getLine());
+            print.addError(error);
+        }
+
         return null;
     }
 
     @Override
     public Void visit(ReturnStmt returnStmt) {
-        //TODO
+        try {
+            FunctionSymbolTableItem functionSymbolTableItem = (FunctionSymbolTableItem) SymbolTable.root.getItem(FunctionSymbolTableItem.START_KEY + lastFuncDeclaration.getFunctionName().getName());
+            functionSymbolTableItem.setReturnType(returnStmt.getReturnedExpr().accept(typeInference));
+        } catch (ItemNotFoundException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 }
