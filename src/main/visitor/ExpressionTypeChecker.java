@@ -4,28 +4,36 @@ import main.ast.nodes.declaration.FunctionDeclaration;
 import main.ast.nodes.expression.*;
 import main.ast.nodes.expression.operators.BinaryOperator;
 import main.ast.nodes.expression.operators.UnaryOperator;
-import main.ast.nodes.expression.values.*;
-import main.ast.nodes.expression.values.primitive.*;
+import main.ast.nodes.expression.values.ListValue;
+import main.ast.nodes.expression.values.VoidValue;
+import main.ast.nodes.expression.values.primitive.BoolValue;
+import main.ast.nodes.expression.values.primitive.IntValue;
+import main.ast.nodes.expression.values.primitive.StringValue;
 import main.ast.types.*;
 import main.ast.types.functionPointer.FptrType;
 import main.ast.types.list.ListType;
-import main.ast.types.single.*;
+import main.ast.types.single.BoolType;
+import main.ast.types.single.IntType;
+import main.ast.types.single.StringType;
 import main.compileErrors.typeErrors.*;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemNotFoundException;
-import main.symbolTable.items.*;
-import java.util.*;
+import main.symbolTable.items.FunctionSymbolTableItem;
+import main.symbolTable.items.VariableSymbolTableItem;
+
+import java.util.ArrayList;
+import java.util.EmptyStackException;
+import java.util.List;
 import java.util.stream.Collectors;
 
-public class TypeInference extends Visitor<Type> {
-	public static ArrayList<String> funcCalls = new ArrayList<>();
-	private final TypeSetter typeSetter;
+public class ExpressionTypeChecker extends Visitor<Type> {
+	private final TypeChecker typeSetter;
 
-	public TypeInference(TypeSetter typeSetter) {
+	public ExpressionTypeChecker(TypeChecker typeSetter) {
 		this.typeSetter = typeSetter;
 	}
 
-	private static boolean areFirstsSubTypeOfSeconds(ArrayList<Type> first, ArrayList<Type> second) {
+	private boolean areFirstsSubTypeOfSeconds(ArrayList<Type> first, ArrayList<Type> second) {
 		if(first.size() != second.size())
 			return false;
 
@@ -37,7 +45,7 @@ public class TypeInference extends Visitor<Type> {
 		return true;
 	}
 
-	private static boolean isFirstSubTypeOfSecond(Type first, Type second) {
+	private boolean isFirstSubTypeOfSecond(Type first, Type second) {
 		if(first instanceof NoType)
 			return true;
 
@@ -48,9 +56,7 @@ public class TypeInference extends Visitor<Type> {
 			return second instanceof FptrType;
 
 		if(first instanceof ListType)
-			return (second instanceof List) && isFirstSubTypeOfSecond(((ListType) first).getType(), ((ListType) second).getType());
-
-		// ToDo Funcptr
+			return (second instanceof List) && (((ListType) first).getType().getClass().equals(((ListType) second).getType().getClass()));
 
 		return true;
 	}
@@ -108,8 +114,8 @@ public class TypeInference extends Visitor<Type> {
 			}
 		}
 
-//		UnsupportedOperandType error = new UnsupportedOperandType(binaryExpression.getLine(), operator.name());
-//		binaryExpression.addError(error);
+		UnsupportedOperandType error = new UnsupportedOperandType(binaryExpression.getLine(), operator.name());
+		binaryExpression.addError(error);
 		return new NoType();
 	}
 
@@ -135,8 +141,8 @@ public class TypeInference extends Visitor<Type> {
 				return new NoType();
 		}
 
-//		UnsupportedOperandType error = new UnsupportedOperandType(unaryExpression.getLine(), operator.name());
-//		unaryExpression.addError(error);
+		UnsupportedOperandType error = new UnsupportedOperandType(unaryExpression.getLine(), operator.name());
+		unaryExpression.addError(error);
 		return new NoType();
 	}
 
@@ -184,15 +190,15 @@ public class TypeInference extends Visitor<Type> {
 			if (indexType instanceof IntType) {
 				return ((ListType)instanceType).getType();
 			}
-//			else if (!(indexType instanceof NoType)) {
-//				ListIndexNotInt error = new ListIndexNotInt(listAccessByIndex.getLine());
-//				listAccessByIndex.addError(error);
-//			}
+			else if (!(indexType instanceof NoType)) {
+				ListIndexNotInt error = new ListIndexNotInt(listAccessByIndex.getLine());
+				listAccessByIndex.addError(error);
+			}
 		}
-//		else if(!(instanceType instanceof NoType)) {
-//			ListAccessByIndexOnNoneList error = new ListAccessByIndexOnNoneList(listAccessByIndex.getLine());
-//			listAccessByIndex.addError(error);
-//		}
+		else if(!(instanceType instanceof NoType)) {
+			ListAccessByIndexOnNoneList error = new ListAccessByIndexOnNoneList(listAccessByIndex.getLine());
+			listAccessByIndex.addError(error);
+		}
 
 		return new NoType();
 	}
@@ -203,19 +209,16 @@ public class TypeInference extends Visitor<Type> {
 		if (instanceType instanceof ListType) {
 			return ((ListType)instanceType).getType();
 		}
-//		else if(!(instanceType instanceof NoType)) {
-//			GetSizeOfNoneList error = new GetSizeOfNoneList(listSize.getLine());
-//			listSize.addError(error);
-//		}
+		else if(!(instanceType instanceof NoType)) {
+			GetSizeOfNoneList error = new GetSizeOfNoneList(listSize.getLine());
+			listSize.addError(error);
+		}
 
 		return new NoType();
 	}
 
 	@Override
 	public Type visit(FunctionCall funcCall) {
-		if (funcCall.getInstance() instanceof Identifier)
-			funcCalls.add(((Identifier)funcCall.getInstance()).getName());
-
 		Type instanceType = funcCall.getInstance().accept(this);
 
 		if (instanceType instanceof NoType)
@@ -226,8 +229,8 @@ public class TypeInference extends Visitor<Type> {
 			funcName = ((FptrType) instanceType).getFunctionName();
 		}
 		else {
-//			CallOnNoneFptrType error = new CallOnNoneFptrType(funcCall.getLine());
-//			funcCall.addError(error);
+			CallOnNoneFptrType error = new CallOnNoneFptrType(funcCall.getLine());
+			funcCall.addError(error);
 			return new NoType();
 		}
 
@@ -235,62 +238,23 @@ public class TypeInference extends Visitor<Type> {
 		try {
 			functionSymbolTableItem = (FunctionSymbolTableItem) SymbolTable.root.getItem(FunctionSymbolTableItem.START_KEY + funcName);
 			boolean typesMatch = true;
-			ArrayList argTypes = new ArrayList<Type>();
 
-			if (!functionSymbolTableItem.getTypeSet()) {
-				ArrayList<Identifier> mainArgs = functionSymbolTableItem.getFuncDeclaration().getArgs();
-				if (!funcCall.getArgs().isEmpty()) {
-					for (int i = 0; i < mainArgs.size(); i++) {
-						if (i < funcCall.getArgs().size()) {
-							Type argType = funcCall.getArgs().get(i).accept(this);
-							functionSymbolTableItem.addArgType(argType);
-							argTypes.add(argType);
-						}
-						else {
-							functionSymbolTableItem.addArgType(new NoType());
-							typesMatch = false;
-						}
-					}
-
-					typesMatch &= funcCall.getArgs().size() == functionSymbolTableItem.getFuncDeclaration().getArgs().size();
-				}
-				else if (!funcCall.getArgsWithKey().isEmpty()) {
-					for (Identifier identifier : mainArgs) {
-						if (funcCall.getArgsWithKey().containsKey(identifier)) {
-							Type argType = funcCall.getArgsWithKey().get(identifier).accept(this);
-							functionSymbolTableItem.addArgType(argType);
-							argTypes.add(argType);
-						}
-						else {
-							functionSymbolTableItem.addArgType(new NoType());
-							typesMatch = false;
-						}
-					}
-
-					typesMatch &= funcCall.getArgsWithKey().size() == functionSymbolTableItem.getFuncDeclaration().getArgs().size();
-				}
-
-				functionSymbolTableItem.setTypeSet();
-				functionSymbolTableItem.getFuncDeclaration().accept(typeSetter);
-
-				if (!funcCall.isInFuncCallStmt() && functionSymbolTableItem.getReturnType() instanceof VoidType) {
-//					CantUseValueOfVoidFunction error = new CantUseValueOfVoidFunction(funcCall.getLine());
-//					funcCall.addError(error);
-//					return new NoType();
-				}
-			}
-			else {
-				if (!funcCall.getArgs().isEmpty())
-					typesMatch &= areFirstsSubTypeOfSeconds(funcCall.getArgs().stream().map(expression -> expression.accept(this)).collect(Collectors.toCollection(ArrayList::new)), functionSymbolTableItem.getArgTypes());
-				else if (!funcCall.getArgsWithKey().isEmpty())
-					typesMatch &= areFirstsSubTypeOfSeconds(functionSymbolTableItem.getFuncDeclaration().getArgs().stream().map(identifier -> funcCall.getArgsWithKey().get(identifier).accept(this)).collect(Collectors.toCollection(ArrayList::new)), functionSymbolTableItem.getArgTypes());
-			}
+			if (!funcCall.getArgs().isEmpty())
+				typesMatch &= areFirstsSubTypeOfSeconds(funcCall.getArgs().stream().map(expression -> expression.accept(this)).collect(Collectors.toCollection(ArrayList::new)), functionSymbolTableItem.getArgTypes());
+			else if (!funcCall.getArgsWithKey().isEmpty())
+				typesMatch &= areFirstsSubTypeOfSeconds(functionSymbolTableItem.getFuncDeclaration().getArgs().stream().map(identifier -> funcCall.getArgsWithKey().get(identifier).accept(this)).collect(Collectors.toCollection(ArrayList::new)), functionSymbolTableItem.getArgTypes());
 
 			if ((funcCall.getArgs().isEmpty() && funcCall.getArgsWithKey().isEmpty() && !functionSymbolTableItem.getFuncDeclaration().getArgs().isEmpty())
 					|| ((!funcCall.getArgs().isEmpty() || !funcCall.getArgsWithKey().isEmpty()) && functionSymbolTableItem.getFuncDeclaration().getArgs().isEmpty())
 					|| !typesMatch) {
-//				FunctionCallNotMatchDefinition error = new FunctionCallNotMatchDefinition(funcCall.getLine());
-//				funcCall.addError(error);
+				FunctionCallNotMatchDefinition error = new FunctionCallNotMatchDefinition(funcCall.getLine());
+				funcCall.addError(error);
+				return new NoType();
+			}
+
+			if (!funcCall.isInFuncCallStmt() && functionSymbolTableItem.getReturnType() instanceof VoidType) {
+				CantUseValueOfVoidFunction error = new CantUseValueOfVoidFunction(funcCall.getLine());
+				funcCall.addError(error);
 				return new NoType();
 			}
 
@@ -308,7 +272,7 @@ public class TypeInference extends Visitor<Type> {
 		ArrayList<Expression> elements = listValue.getElements();
 
 		if (elements.isEmpty())
-			return new ListType(new NoType());
+			return new ListType(null);
 
 		Type firstType = elements.get(0).accept(this);
 		if (firstType instanceof NoType)
@@ -320,10 +284,9 @@ public class TypeInference extends Visitor<Type> {
 			if (elementType instanceof NoType)
 				return new NoType();
 
-			// ToDo
 			if (!(isFirstSubTypeOfSecond(firstType, elementType) && isFirstSubTypeOfSecond(elementType, firstType))) {
-//				ListElementsTypeNotMatch error = new ListElementsTypeNotMatch(listValue.getLine());
-//				listValue.addError(error);
+				ListElementsTypeNotMatch error = new ListElementsTypeNotMatch(listValue.getLine());
+				listValue.addError(error);
 				return new NoType();
 			}
 		}

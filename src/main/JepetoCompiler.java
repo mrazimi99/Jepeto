@@ -1,6 +1,7 @@
 package main;
 
 import main.ast.nodes.Program;
+import main.symbolTable.SymbolTable;
 import main.visitor.*;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -24,6 +25,8 @@ public class JepetoCompiler {
 
         TypeSetter typeSetter = new TypeSetter();
         program.accept(typeSetter);
+        TypeChecker typeChecker = new TypeChecker();
+        program.accept(typeChecker);
         numberOfErrors = program.accept(errorReporter);
 
         if(numberOfErrors > 0)

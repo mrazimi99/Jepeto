@@ -5,9 +5,18 @@ import java.util.*;
 
 //line -> LPAR before arguments
 public class FunctionCall extends Expression {
+    private boolean isInFuncCallStmt = false;
     private Expression instance;
     private ArrayList<Expression> args = new ArrayList<>();
     private Map<Identifier, Expression> argsWithKey = new HashMap<>();
+
+    public boolean isInFuncCallStmt() {
+        return isInFuncCallStmt;
+    }
+
+    public void setInFuncCallStmt(boolean inFuncCallStmt) {
+        isInFuncCallStmt = inFuncCallStmt;
+    }
 
     public FunctionCall(Expression instance) {
         this.instance = instance;
