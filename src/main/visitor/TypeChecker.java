@@ -9,17 +9,14 @@ import main.ast.types.Type;
 import main.ast.types.single.BoolType;
 import main.ast.types.single.IntType;
 import main.ast.types.single.StringType;
+import main.compileErrors.typeErrors.ConditionNotBool;
 import main.compileErrors.typeErrors.UnsupportedTypeForPrint;
-import main.symbolTable.SymbolTable;
-import main.symbolTable.exceptions.ItemNotFoundException;
-import main.symbolTable.items.FunctionSymbolTableItem;
 
-import java.util.ArrayList;
 import java.util.Stack;
 
 public class TypeChecker extends Visitor<Void> {
 	public static Stack<FunctionDeclaration> funcDeclarations = new Stack<>();
-	private final ExpressionTypeChecker expressionTypeChecker = new ExpressionTypeChecker(this);
+	private final ExpressionTypeChecker expressionTypeChecker = new ExpressionTypeChecker();
 
 	@Override
 	public Void visit(Program program) {
@@ -53,7 +50,12 @@ public class TypeChecker extends Visitor<Void> {
 
 	@Override
 	public Void visit(ConditionalStmt conditionalStmt) {
-		conditionalStmt.getCondition().accept(this);
+		Type condType = conditionalStmt.getCondition().accept(expressionTypeChecker);
+
+		if (!(condType instanceof BoolType || condType instanceof NoType)) {
+			ConditionNotBool error = new ConditionNotBool(conditionalStmt.getLine());
+			conditionalStmt.addError(error);
+		}
 		conditionalStmt.getThenBody().accept(this);
 
 		if(conditionalStmt.getElseBody() != null) {

@@ -23,44 +23,12 @@ import main.symbolTable.items.VariableSymbolTableItem;
 
 import java.util.ArrayList;
 import java.util.EmptyStackException;
-import java.util.List;
 import java.util.stream.Collectors;
 
+import static main.visitor.Utility.isFirstSubTypeOfSecond;
+import static main.visitor.Utility.areFirstsSubTypeOfSeconds;
+
 public class ExpressionTypeChecker extends Visitor<Type> {
-	private final TypeChecker typeSetter;
-
-	public ExpressionTypeChecker(TypeChecker typeSetter) {
-		this.typeSetter = typeSetter;
-	}
-
-	private boolean areFirstsSubTypeOfSeconds(ArrayList<Type> first, ArrayList<Type> second) {
-		if(first.size() != second.size())
-			return false;
-
-		for(int i = 0; i < first.size(); i++) {
-			if(!isFirstSubTypeOfSecond(first.get(i), second.get(i)))
-				return false;
-		}
-
-		return true;
-	}
-
-	private boolean isFirstSubTypeOfSecond(Type first, Type second) {
-		if(first instanceof NoType)
-			return true;
-
-		if(first instanceof IntType || first instanceof BoolType || first instanceof StringType)
-			return first.toString().equals(second.toString());
-
-		if (first instanceof VoidType)
-			return second instanceof FptrType;
-
-		if(first instanceof ListType)
-			return (second instanceof List) && (((ListType) first).getType().getClass().equals(((ListType) second).getType().getClass()));
-
-		return true;
-	}
-
 	@Override
 	public Type visit(BinaryExpression binaryExpression) {
 		Expression left = binaryExpression.getFirstOperand();
@@ -77,11 +45,18 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 			if ((tl instanceof NoType || tl instanceof BoolType) && (tr instanceof BoolType || tr instanceof NoType))
 				return new NoType();
 		}
-		else if (operator.equals(BinaryOperator.add) || operator.equals(BinaryOperator.sub) || operator.equals(BinaryOperator.mult) || operator.equals(BinaryOperator.div) || operator.equals(BinaryOperator.gt) || operator.equals(BinaryOperator.lt)) {
+		else if (operator.equals(BinaryOperator.add) || operator.equals(BinaryOperator.sub) || operator.equals(BinaryOperator.mult) || operator.equals(BinaryOperator.div)) {
 			if (tl instanceof IntType && tr instanceof IntType)
 				return new IntType();
 
-			if ((tl instanceof NoType || tl instanceof IntType) && (tr instanceof IntType || tr instanceof NoType))
+			if ((tl instanceof NoType || tl instanceof IntType) && (tr instanceof NoType || tr instanceof IntType))
+				return new NoType();
+		}
+		else if (operator.equals(BinaryOperator.gt) || operator.equals(BinaryOperator.lt)) {
+			if (tl instanceof IntType && tr instanceof IntType)
+				return new BoolType();
+
+			if ((tl instanceof NoType || tl instanceof IntType) && (tr instanceof NoType || tr instanceof IntType))
 				return new NoType();
 		}
 		else if (operator.equals(BinaryOperator.eq) || operator.equals(BinaryOperator.neq)) {
@@ -90,7 +65,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 				if (tl instanceof NoType || tr instanceof NoType)
 					return new NoType();
 
-				if (tl.getClass().equals(tr.getClass()))
+				if (isFirstSubTypeOfSecond(tl, tr) && isFirstSubTypeOfSecond(tr, tl))
 					return new BoolType();
 
 				if ((tl instanceof FptrType && tr instanceof VoidType) || (tl instanceof VoidType && tr instanceof FptrType))
@@ -100,13 +75,13 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 		else if (operator.equals(BinaryOperator.append)) {
 			if (tl instanceof ListType) {
 				if (tr instanceof NoType)
-					return new NoType();
+					return tl;
 
 				ListType listType = (ListType) tl;
-				if (listType.getType() == null)
+				if (listType.getType() instanceof NoType)
 					listType.setType(tr);
 
-				if (tr.getClass().equals(listType.getType()))
+				if (isFirstSubTypeOfSecond(tr, listType.getType()) || isFirstSubTypeOfSecond(listType.getType(), tr))
 					return new ListType(listType.getType());
 			}
 			else if (tl instanceof NoType) {
@@ -158,7 +133,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 		FunctionDeclaration currentFunctionDeclaration;
 		try {
 			try {
-				currentFunctionDeclaration = TypeSetter.funcDeclarations.peek();
+				currentFunctionDeclaration = TypeChecker.funcDeclarations.peek();
 			} catch (EmptyStackException e) {
 				throw new ItemNotFoundException();
 			}
@@ -169,7 +144,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 			ArrayList<Identifier> args = currentFunctionDeclaration.getArgs();
 
 			for (int i = 0; i < args.size(); i++) {
-				if (args.get(i).getName() == variableSymbolTableItem.getName()) {
+				if (args.get(i).getName().equals(variableSymbolTableItem.getName())) {
 					thisIdIndex = i;
 					break;
 				}
@@ -186,7 +161,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 	public Type visit(ListAccessByIndex listAccessByIndex) {
 		Type instanceType = listAccessByIndex.getInstance().accept(this);
 		Type indexType = listAccessByIndex.getIndex().accept(this);
-		if (instanceType instanceof ListType) {
+		if (instanceType instanceof ListType || instanceType instanceof NoType) {
 			if (indexType instanceof IntType) {
 				return ((ListType)instanceType).getType();
 			}
@@ -195,7 +170,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 				listAccessByIndex.addError(error);
 			}
 		}
-		else if(!(instanceType instanceof NoType)) {
+		else {
 			ListAccessByIndexOnNoneList error = new ListAccessByIndexOnNoneList(listAccessByIndex.getLine());
 			listAccessByIndex.addError(error);
 		}
@@ -207,7 +182,7 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 	public Type visit(ListSize listSize) {
 		Type instanceType = listSize.getInstance().accept(this);
 		if (instanceType instanceof ListType) {
-			return ((ListType)instanceType).getType();
+			return new IntType();
 		}
 		else if(!(instanceType instanceof NoType)) {
 			GetSizeOfNoneList error = new GetSizeOfNoneList(listSize.getLine());
@@ -272,17 +247,20 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 		ArrayList<Expression> elements = listValue.getElements();
 
 		if (elements.isEmpty())
-			return new ListType(null);
+			return new ListType(new NoType());
 
-		Type firstType = elements.get(0).accept(this);
-		if (firstType instanceof NoType)
-			return new NoType();
+		Type firstType = new NoType();
 
-		for (int i = 1; i < elements.size(); i++) {
+		for (int i = 0; i < elements.size(); i++) {
 			Type elementType = elements.get(i).accept(this);
 
-			if (elementType instanceof NoType)
-				return new NoType();
+			if (firstType instanceof NoType && !(elementType instanceof NoType)) {
+				firstType = elementType;
+				continue;
+			}
+			else if (elementType instanceof NoType) {
+				continue;
+			}
 
 			if (!(isFirstSubTypeOfSecond(firstType, elementType) && isFirstSubTypeOfSecond(elementType, firstType))) {
 				ListElementsTypeNotMatch error = new ListElementsTypeNotMatch(listValue.getLine());

@@ -65,6 +65,4 @@ public class FunctionCall extends Expression {
     public <T> T accept(IVisitor<T> visitor) {
         return visitor.visit(this);
     }
-
-
 }

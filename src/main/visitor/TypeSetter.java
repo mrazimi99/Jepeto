@@ -2,12 +2,18 @@ package main.visitor;
 
 import main.ast.nodes.*;
 import main.ast.nodes.declaration.*;
+import main.ast.nodes.expression.FunctionCall;
 import main.ast.nodes.statement.*;
+import main.ast.types.NoType;
+import main.ast.types.Type;
+import main.compileErrors.typeErrors.ReturnValueNotMatchFunctionReturnType;
 import main.symbolTable.*;
 import main.symbolTable.exceptions.*;
 import main.symbolTable.items.*;
 
 import java.util.Stack;
+
+import static main.visitor.Utility.isFirstSubTypeOfSecond;
 
 public class TypeSetter extends Visitor<Void> {
     public static Stack<FunctionDeclaration> funcDeclarations = new Stack<>();
@@ -42,7 +48,7 @@ public class TypeSetter extends Visitor<Void> {
 
     @Override
     public Void visit(ConditionalStmt conditionalStmt) {
-        conditionalStmt.getCondition().accept(this);
+        conditionalStmt.getCondition().accept(typeInference);
         conditionalStmt.getThenBody().accept(this);
 
         if(conditionalStmt.getElseBody() != null) {
@@ -54,7 +60,8 @@ public class TypeSetter extends Visitor<Void> {
 
     @Override
     public Void visit(FunctionCallStmt funcCallStmt) {
-        funcCallStmt.getFunctionCall().accept(typeInference);
+        FunctionCall functionCall = funcCallStmt.getFunctionCall();
+        functionCall.accept(typeInference);
         return null;
     }
 
@@ -69,8 +76,13 @@ public class TypeSetter extends Visitor<Void> {
         try {
             FunctionSymbolTableItem functionSymbolTableItem = (FunctionSymbolTableItem) SymbolTable.root.getItem(FunctionSymbolTableItem.START_KEY + funcDeclarations.peek().getFunctionName().getName());
 
-            if (functionSymbolTableItem.getReturnType() == null)
-                functionSymbolTableItem.setReturnType(returnStmt.getReturnedExpr().accept(typeInference));
+            Type type = returnStmt.getReturnedExpr().accept(typeInference);
+            if (functionSymbolTableItem.getReturnType() == null || functionSymbolTableItem.getReturnType() instanceof NoType) // todo is notype
+                functionSymbolTableItem.setReturnType(type);
+            else if (!isFirstSubTypeOfSecond(type, functionSymbolTableItem.getReturnType())) {
+                ReturnValueNotMatchFunctionReturnType error = new ReturnValueNotMatchFunctionReturnType(returnStmt.getLine());
+                returnStmt.addError(error);
+            }
         } catch (ItemNotFoundException e) {
             e.printStackTrace();
         }
