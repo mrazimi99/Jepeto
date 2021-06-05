@@ -30,7 +30,7 @@ public class Utility {
 	}
 
 	public static boolean isFirstSubTypeOfSecond(Type first, Type second) {
-		if(first instanceof NoType || second instanceof NoType) //todo
+		if(first instanceof NoType || second instanceof NoType)
 			return true;
 
 		if(first instanceof IntType || first instanceof BoolType || first instanceof StringType)

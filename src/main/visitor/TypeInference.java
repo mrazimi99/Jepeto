@@ -117,8 +117,6 @@ public class TypeInference extends Visitor<Type> {
 
 	@Override
 	public Type visit(AnonymousFunction anonymousFunction) {
-		anonymousFunction.getArgs().forEach(identifier -> identifier.accept(this));
-		anonymousFunction.getBody().accept(this);
 		return new FptrType(anonymousFunction.getName());
 	}
 
@@ -147,7 +145,6 @@ public class TypeInference extends Visitor<Type> {
 			variableSymbolTableItem.setType(functionSymbolTableItem.getArgTypes().get(thisIdIndex));
 			return variableSymbolTableItem.getType();
 		} catch (ItemNotFoundException e) {
-			funcCalls.add(identifier.getName());
 			return new FptrType(identifier.getName());
 		}
 	}
@@ -185,6 +182,7 @@ public class TypeInference extends Visitor<Type> {
 		String funcName;
 		if (instanceType instanceof FptrType) {
 			funcName = ((FptrType) instanceType).getFunctionName();
+			funcCalls.add(funcName);
 		}
 		else {
 			return new NoType();

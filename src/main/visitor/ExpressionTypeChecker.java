@@ -29,6 +29,12 @@ import static main.visitor.Utility.isFirstSubTypeOfSecond;
 import static main.visitor.Utility.areFirstsSubTypeOfSeconds;
 
 public class ExpressionTypeChecker extends Visitor<Type> {
+	private final TypeChecker typeChecker;
+
+	public ExpressionTypeChecker(TypeChecker typeChecker) {
+		this.typeChecker = typeChecker;
+	}
+
 	@Override
 	public Type visit(BinaryExpression binaryExpression) {
 		Expression left = binaryExpression.getFirstOperand();
@@ -123,8 +129,14 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 
 	@Override
 	public Type visit(AnonymousFunction anonymousFunction) {
+		FunctionDeclaration funcDec = new FunctionDeclaration();
+		funcDec.setFunctionName(new Identifier(anonymousFunction.getName()));
+		funcDec.setArgs(anonymousFunction.getArgs());
+		funcDec.setBody(anonymousFunction.getBody());
+		TypeChecker.funcDeclarations.push(funcDec);
 		anonymousFunction.getArgs().forEach(identifier -> identifier.accept(this));
-		anonymousFunction.getBody().accept(this);
+		anonymousFunction.getBody().accept(typeChecker);
+		TypeChecker.funcDeclarations.pop();
 		return new FptrType(anonymousFunction.getName());
 	}
 
@@ -161,13 +173,18 @@ public class ExpressionTypeChecker extends Visitor<Type> {
 	public Type visit(ListAccessByIndex listAccessByIndex) {
 		Type instanceType = listAccessByIndex.getInstance().accept(this);
 		Type indexType = listAccessByIndex.getIndex().accept(this);
-		if (instanceType instanceof ListType || instanceType instanceof NoType) {
+
+		if (!(indexType instanceof IntType) && !(indexType instanceof NoType)) {
+			ListIndexNotInt error = new ListIndexNotInt(listAccessByIndex.getLine());
+			listAccessByIndex.addError(error);
+		}
+
+		if (instanceType instanceof NoType)
+			return new NoType();
+
+		if (instanceType instanceof ListType) {
 			if (indexType instanceof IntType) {
 				return ((ListType)instanceType).getType();
-			}
-			else if (!(indexType instanceof NoType)) {
-				ListIndexNotInt error = new ListIndexNotInt(listAccessByIndex.getLine());
-				listAccessByIndex.addError(error);
 			}
 		}
 		else {

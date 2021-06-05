@@ -11,12 +11,15 @@ import main.ast.types.single.IntType;
 import main.ast.types.single.StringType;
 import main.compileErrors.typeErrors.ConditionNotBool;
 import main.compileErrors.typeErrors.UnsupportedTypeForPrint;
+import main.symbolTable.SymbolTable;
+import main.symbolTable.exceptions.ItemNotFoundException;
+import main.symbolTable.items.FunctionSymbolTableItem;
 
 import java.util.Stack;
 
 public class TypeChecker extends Visitor<Void> {
 	public static Stack<FunctionDeclaration> funcDeclarations = new Stack<>();
-	private final ExpressionTypeChecker expressionTypeChecker = new ExpressionTypeChecker();
+	private final ExpressionTypeChecker expressionTypeChecker = new ExpressionTypeChecker(this);
 
 	@Override
 	public Void visit(Program program) {
@@ -29,11 +32,24 @@ public class TypeChecker extends Visitor<Void> {
 	public Void visit(FunctionDeclaration funcDeclaration) {
 		funcDeclarations.push(funcDeclaration);
 		if (TypeInference.funcCalls.contains(funcDeclaration.getFunctionName().getName())) {
+			printInfo(funcDeclaration);
 			funcDeclaration.getArgs().forEach(identifier -> identifier.accept(expressionTypeChecker));
 			funcDeclaration.getBody().accept(this);
 		}
 		funcDeclarations.pop();
 		return null;
+	}
+
+	private static void printInfo(FunctionDeclaration funcDeclaration) {
+		FunctionSymbolTableItem functionSymbolTableItem;
+		try {
+			functionSymbolTableItem = ((FunctionSymbolTableItem) SymbolTable.root.getItem(FunctionSymbolTableItem.START_KEY + funcDeclaration.getFunctionName().getName()));
+			System.out.println(funcDeclaration.getFunctionName().getName());
+			System.out.println(functionSymbolTableItem.getArgTypes());
+			System.out.println(functionSymbolTableItem.getReturnType());
+		} catch (ItemNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
