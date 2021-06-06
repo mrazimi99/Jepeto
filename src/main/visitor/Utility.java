@@ -55,10 +55,13 @@ public class Utility {
 			Type secondRetType = null;
 			ArrayList<Type> firstArgsTypes = null;
 			ArrayList<Type> secondArgsTypes = null;
+			String firstName = ((FptrType) first).getFunctionName();
+			String secondName = ((FptrType) second).getFunctionName();
+
+			if (firstName.equals(secondName))
+				return true;
 
 			try {
-				String firstName = ((FptrType) first).getFunctionName();
-				String secondName = ((FptrType) second).getFunctionName();
 				FunctionSymbolTableItem firstFunctionSymbolTableItem = (FunctionSymbolTableItem) SymbolTable.root.getItem(FunctionSymbolTableItem.START_KEY + firstName);
 				FunctionSymbolTableItem secondFunctionSymbolTableItem = (FunctionSymbolTableItem) SymbolTable.root.getItem(FunctionSymbolTableItem.START_KEY + secondName);
 

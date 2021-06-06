@@ -10,6 +10,7 @@ import main.ast.types.*;
 import main.ast.types.functionPointer.FptrType;
 import main.ast.types.list.ListType;
 import main.ast.types.single.*;
+import main.compileErrors.typeErrors.CantUseValueOfVoidFunction;
 import main.symbolTable.SymbolTable;
 import main.symbolTable.exceptions.ItemNotFoundException;
 import main.symbolTable.items.*;
@@ -252,6 +253,10 @@ public class TypeInference extends Visitor<Type> {
 			if ((funcCall.getArgs().isEmpty() && funcCall.getArgsWithKey().isEmpty() && !functionSymbolTableItem.getFuncDeclaration().getArgs().isEmpty())
 					|| ((!funcCall.getArgs().isEmpty() || !funcCall.getArgsWithKey().isEmpty()) && functionSymbolTableItem.getFuncDeclaration().getArgs().isEmpty())
 					|| !typesMatch) {
+				return new NoType();
+			}
+
+			if (!funcCall.isInFuncCallStmt() && functionSymbolTableItem.getReturnType() instanceof VoidType) {
 				return new NoType();
 			}
 

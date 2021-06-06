@@ -1,10 +1,12 @@
 func f2(a) : {
-    return f3();
+    return a;
+    #a(a(2));
 }
 
 func f3() : {
-    return f2([2, 3].size);
+return void;
+    #return f2([2, 3].size is 2);
     #print(g([1, true * 1] :: [[1, 2, 3]][0].size));
 }
 
-main : f2(2 is ([2, 4, 5].size > [3, 4][3]));
+main : f2(f2(f2(f2(f2(1)))));

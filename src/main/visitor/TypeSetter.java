@@ -82,7 +82,9 @@ public class TypeSetter extends Visitor<Void> {
     @Override
     public Void visit(FunctionCallStmt funcCallStmt) {
         FunctionCall functionCall = funcCallStmt.getFunctionCall();
+        funcCallStmt.getFunctionCall().setInFuncCallStmt(true);
         functionCall.accept(typeInference);
+        funcCallStmt.getFunctionCall().setInFuncCallStmt(false);
         return null;
     }
 
