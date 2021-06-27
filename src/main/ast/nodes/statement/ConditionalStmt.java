@@ -17,6 +17,7 @@ public class ConditionalStmt extends Statement{
     public Expression getCondition() {
         return condition;
     }
+
     public void setCondition(Expression condition) {
         this.condition = condition;
     }
@@ -24,6 +25,7 @@ public class ConditionalStmt extends Statement{
     public Statement getThenBody() {
         return thenBody;
     }
+
     public void setThenBody(Statement thenBody) {
         this.thenBody = thenBody;
     }
@@ -31,6 +33,7 @@ public class ConditionalStmt extends Statement{
     public Statement getElseBody() {
         return elseBody;
     }
+
     public void setElseBody(Statement elseBody) {
         this.elseBody = elseBody;
     }

@@ -1,8 +1,11 @@
 package main.ast.nodes;
 
-import main.compileErrors.CompileError;
+
+import main.compileError.CompileError;
 import main.visitor.IVisitor;
+
 import java.util.ArrayList;
+
 
 public abstract class Node{
     private int line;
@@ -12,10 +15,12 @@ public abstract class Node{
     public int getLine() {
         return line;
     }
+
     public void setLine(int line) {
         this.line = line;
     }
 
+    public abstract String toString();
     public void addError(CompileError e) {
         if(Node.isCatchErrorsActive) {
             this.errors.add(e);
@@ -29,6 +34,6 @@ public abstract class Node{
     }
 
     public abstract <T> T accept(IVisitor<T> visitor);
-    public abstract String toString();
+
 }
 

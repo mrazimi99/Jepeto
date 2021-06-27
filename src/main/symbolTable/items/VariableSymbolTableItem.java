@@ -1,5 +1,7 @@
 package main.symbolTable.items;
 
+
+
 import main.ast.nodes.expression.Identifier;
 import main.ast.types.Type;
 
@@ -18,6 +20,7 @@ public class VariableSymbolTableItem extends SymbolTableItem {
     public Type getType() {
         return type;
     }
+
     public void setType(Type type) {
         this.type = type;
     }

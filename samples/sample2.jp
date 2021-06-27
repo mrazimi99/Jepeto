@@ -1,28 +1,30 @@
-main : start(start(1));
+main : k(155, true, "str");
 
-func start(arg1) : {
-    f(arg1);
-    return arg1;
+func f(a, b) : {
+    print([a, b, a, b, b, b][b] * -2);
+    return 13;
 }
 
-func f(arg1) : {
-    if (arg1) :
-        return g;
-    else : {
-        if (arg1 * true + arg1 > 10) :
-            k(arg1 , arg1, true);
-        return arg1;
-    }
-
+func g() : {
+    return f;
 }
 
-func g(a, b) : {
-    if(a) :
-        return a;
-    return b.size;
+func h():{
+    return void;
 }
 
-func k(a, b, c) : {
-    return f(a)(b, c);
-    return [1, "str", c][~c];
+func r():{
+    return ()->{print("PLC_1400");return "CLP";};
+}
+
+func k(arg1, arg2, arg3) :{
+    h();
+    g()(arg1, 2);
+    if (~arg2):
+        return arg3;
+    else:
+        print((a, b)->{print(a);print(f(20, 1));return 1;}(arg3, arg3));
+
+    r()();
+    return "true";
 }

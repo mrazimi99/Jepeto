@@ -2,8 +2,6 @@ package main.ast.types.functionPointer;
 
 import main.ast.types.Type;
 
-import java.util.ArrayList;
-
 public class FptrType extends Type {
     private String functionName;
 

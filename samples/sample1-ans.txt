@@ -1,10 +1,15 @@
-f
-[BoolType, StringType]
-VoidType
-g
-[BoolType, StringType]
-BoolType
-Line 8: Unsupported operand type for operator and
-Line 12: Cannot use return value of a function having void return type
-Line 12: Unsupported operand type for operator add
-Line 12: Unsupported operand type for operator mult
+Compilation successful
+
+-------------------Generating Class Files-------------------
+Generated: Fptr.class
+Generated: List.class
+Generated: Main.class
+
+---------------------------Output---------------------------
+4
+1
+3
+[1,2,3,4]
+Hello
+0
+120

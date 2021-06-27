@@ -1,15 +1,19 @@
 package main.ast.nodes.declaration;
 
+
 import main.ast.nodes.expression.Identifier;
 import main.ast.nodes.statement.Statement;
+
 import main.visitor.IVisitor;
-import java.util.*;
+
+import java.util.ArrayList;
 
 //line -> FUNC
 public class FunctionDeclaration extends Declaration {
     protected Identifier functionName;
     protected ArrayList<Identifier> args = new ArrayList<>();
     protected Statement body;
+
 
     public Identifier getFunctionName() {
         return functionName;
@@ -38,6 +42,10 @@ public class FunctionDeclaration extends Declaration {
     public void addArg(Identifier argument) {
         this.args.add(argument);
     }
+
+
+
+
 
     @Override
     public String toString() {
