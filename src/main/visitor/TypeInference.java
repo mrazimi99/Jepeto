@@ -35,7 +35,7 @@ public class TypeInference extends Visitor<Type> {
 
 		Type tl = left.accept(this);
 		Type tr = right.accept(this);
-		BinaryOperator operator =  binaryExpression.getBinaryOperator();
+		BinaryOperator operator = binaryExpression.getBinaryOperator();
 
 		if (operator.equals(BinaryOperator.and) || operator.equals(BinaryOperator.or)) {
 			if (tl instanceof BoolType && tr instanceof BoolType)
