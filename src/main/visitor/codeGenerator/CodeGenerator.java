@@ -20,7 +20,6 @@ import main.visitor.type.ExpressionTypeChecker;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +31,7 @@ public class CodeGenerator extends Visitor<String> {
 	private FunctionDeclaration curFuncDec;
 	private int labelCounter;
 	private int tempVars;
+	private ArrayList<FunctionDeclaration> anonymousDecs = new ArrayList<>();
 
 	public CodeGenerator(ExpressionTypeChecker expressionTypeChecker, Set<String> visited) {
 		this.expressionTypeChecker = expressionTypeChecker;
@@ -256,6 +256,14 @@ public class CodeGenerator extends Visitor<String> {
 		addMainConstructor(program);
 
 		for (FunctionDeclaration functionDeclaration : program.getFunctions()) {
+			if (visited.contains(functionDeclaration.getFunctionName().getName())) {
+				curFuncDec = functionDeclaration;
+				expressionTypeChecker.setCurFunction(findFuncSymbolTableItem(functionDeclaration));
+				functionDeclaration.accept(this);
+			}
+		}
+
+		for (FunctionDeclaration functionDeclaration : anonymousDecs) {
 			if (visited.contains(functionDeclaration.getFunctionName().getName())) {
 				curFuncDec = functionDeclaration;
 				expressionTypeChecker.setCurFunction(findFuncSymbolTableItem(functionDeclaration));
@@ -550,8 +558,10 @@ public class CodeGenerator extends Visitor<String> {
 
 	@Override
 	public String visit(AnonymousFunction anonymousFunction) {
-		//todo
-		return null;
+		FptrType fptrType = (FptrType) expressionTypeChecker.visit(anonymousFunction);
+		FunctionSymbolTableItem funcSymbolTableItem = findFuncSymbolTableItem(fptrType.getFunctionName());
+		anonymousDecs.add(funcSymbolTableItem.getFuncDeclaration());
+		return this.visit(new Identifier(fptrType.getFunctionName()));
 	}
 
 	@Override
