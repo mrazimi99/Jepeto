@@ -36,7 +36,7 @@ public class JepetoCompiler {
             System.exit(1);
         System.out.println("Compilation successful");
 
-        CodeGenerator codeGenerator = new CodeGenerator(typeCheker.getExpressionTypeChecker());
+        CodeGenerator codeGenerator = new CodeGenerator(typeCheker.getExpressionTypeChecker(), typeSetter.getVisited());
         program.accept(codeGenerator);
 
         runJasminFiles();
